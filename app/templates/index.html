@@ -57,6 +57,16 @@
     <section class="section macro-study">
       <h2>Statistik reaksi news <span class="muted">· catatan historis manual</span></h2>
       <p class="muted">Catat bias sebelum rilis, harga sebelum rilis, dan harga 15 menit sesudahnya. Win rate hanya mengukur apakah arah 15 menit sesuai bias yang dicatat, bukan profitabilitas trade. Jangan isi bias setelah melihat hasil.</p>
+      {% if macro_import_message %}<p class="notice">{{ macro_import_message }}</p>{% endif %}
+      <div class="history-import">
+        <h3>Impor bias historis</h3>
+        <p class="muted">Masukkan data event tahun-tahun sebelumnya dari CSV berbasis harga historis yang sudah diverifikasi. Bias <code>up</code>/<code>down</code> adalah arah yang dicatat; harga sesudah 15 menit dipakai untuk mengecek reaksinya.</p>
+        <p><a href="/macro-reactions/template.csv">Unduh template CSV</a></p>
+        <form method="post" action="/macro-reactions/import" enctype="multipart/form-data" class="form">
+          <label>File CSV historis <input type="file" name="file" accept=".csv,text/csv" required></label>
+          <button type="submit">Impor data historis</button>
+        </form>
+      </div>
       <form method="post" action="/macro-reactions" class="form">
         <div class="fields-2">
           <label>Event
