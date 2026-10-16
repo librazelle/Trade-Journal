@@ -9,7 +9,11 @@
   <h3>
     {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}
   </h3>
-  {% if item.summary %}<p>{{ item.summary }}</p>{% endif %}
+  <div class="news-explanations">
+    <p class="explain-id"><strong>Ringkasan Indonesia:</strong> {{ item.summary_id }}</p>
+    <p class="explain-simple"><strong>Bahasa gampang:</strong> {{ item.summary_simple }}</p>
+  </div>
+  {% if item.summary %}<p class="original-summary"><strong>Ringkasan sumber:</strong> {{ item.summary }}</p>{% endif %}
   {% if item.tags_list %}
   <div class="tags">{% for t in item.tags_list %}<span>{{ t }}</span>{% endfor %}</div>
   {% endif %}
