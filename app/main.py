@@ -21,6 +21,7 @@ from .services.econ_calendar import fetch_bls_calendar
 from .services.calendar_store import ensure_calendar_table, save_calendar_events, list_calendar_events
 from .timeutil import fmt_utc, to_local
 from .worker import run_worker
+from .services.source_health import snapshot as source_health_snapshot
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -266,6 +267,22 @@ async def stream_news(request: Request):
 @app.get("/health")
 def health():
     return {"ok": True}
+
+
+@app.get("/api/source-health")
+def source_health():
+    """Current in-memory polling status for official RSS connectors."""
+    labels = {
+        "fed_rss": "Federal Reserve",
+        "bls_rss": "U.S. Bureau of Labor Statistics",
+    }
+    return {
+        "checked_at": fmt_utc(datetime.now(timezone.utc)),
+        "sources": [
+            {**item, "label": labels.get(item["name"], item["name"])}
+            for item in source_health_snapshot()
+        ],
+    }
 
 
 @app.get("/api/calendar")
