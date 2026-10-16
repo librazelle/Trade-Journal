@@ -115,7 +115,6 @@ def trade_detail(request: Request, trade_id: int):
     # Replay timeline is retrospective: pre-entry news is the frozen snapshot,
     # while post-entry news is explicitly marked as hindsight review material.
     replay_items = []
-    snapshot_ids = {item.get("id") for item in context}
     cutoff_utc = fmt_utc(datetime.fromisoformat(trade["entry_time"].replace("Z", "+00:00")) + timedelta(minutes=1))
     for item in pre_entry_news_view:
         known_by_entry = item.get("ingested_at") and item["ingested_at"] <= cutoff_utc
