@@ -260,3 +260,33 @@ a.replay-title:hover { text-decoration: underline; text-underline-offset: 3px; }
   font-variant-numeric: tabular-nums;
   margin: 2px 0 4px;
 }
+
+
+.source-health-panel {
+  margin: 0 0 18px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.source-health-list { display: grid; gap: 8px; }
+.source-health-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.source-health-row strong { font-size: 13px; }
+.source-health-row p { grid-column: 1 / -1; margin: 0; overflow-wrap: anywhere; }
+.source-badge {
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+.source-badge.live { color: var(--long); border-color: var(--long); }
+.source-badge.delayed { color: #e6bd72; border-color: #e6bd72; }
+.source-badge.stale { color: #e6bd72; border-color: #e6bd72; }
+.source-badge.offline { color: var(--short); border-color: var(--short); }
