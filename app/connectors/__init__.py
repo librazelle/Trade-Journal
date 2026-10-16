@@ -1,6 +1,8 @@
+from .bls_rss import BLSRSSConnector
 from .fed_rss import FedRSSConnector
 
-# Tambahkan connector baru di sini. Core tidak perlu diubah.
+# Connector failures are isolated by the worker; core storage remains shared.
 CONNECTORS = [
     FedRSSConnector(),
+    BLSRSSConnector(),
 ]
