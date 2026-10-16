@@ -94,14 +94,60 @@ def trade_detail(request: Request, trade_id: int):
             (row["entry_time"],),
         ).fetchall()
     trade = dict(row)
+    context = [news_view(n) for n in json.loads(trade["context_json"])]
+    economic_context = json.loads(trade.get("econ_context_json") or "[]")
+    after_view = [news_view(n) for n in after]
+
+    # Replay timeline is retrospective: pre-entry news is the frozen snapshot,
+    # while post-entry news is explicitly marked as hindsight review material.
+    replay_items = []
+    for item in context:
+        replay_items.append({
+            "timestamp": item["published_at"],
+            "time": item["published_at"],
+            "kind": "news",
+            "relation": "Sebelum entry · snapshot",
+            "title": item["title"],
+            "source": item["source"],
+            "impact": item["impact"],
+            "url": item.get("url"),
+            "summary": item.get("summary"),
+        })
+    for event in economic_context:
+        replay_items.append({
+            "timestamp": event["scheduled_at_utc"],
+            "time": event["scheduled_at_utc"],
+            "kind": "calendar",
+            "relation": "Event terjadwal · diketahui saat entry",
+            "title": event["name"],
+            "source": event["source"],
+            "impact": event["impact"],
+            "url": event.get("url"),
+            "summary": None,
+        })
+    for item in after_view:
+        replay_items.append({
+            "timestamp": item["published_at"],
+            "time": item["published_at"],
+            "kind": "news-after",
+            "relation": "Setelah entry · tinjauan retrospektif",
+            "title": item["title"],
+            "source": item["source"],
+            "impact": item["impact"],
+            "url": item.get("url"),
+            "summary": item.get("summary"),
+        })
+    replay_items.sort(key=lambda item: item["timestamp"])
+
     return templates.TemplateResponse(
         request,
         "trade.html",
         {
             "trade": trade,
-            "context": [news_view(n) for n in json.loads(trade["context_json"])],
-            "economic_context": json.loads(trade.get("econ_context_json") or "[]"),
-            "after": [news_view(n) for n in after],
+            "context": context,
+            "economic_context": economic_context,
+            "after": after_view,
+            "replay_items": replay_items,
             "lookback": settings.lookback_hours,
             "tz": settings.display_tz,
         },
