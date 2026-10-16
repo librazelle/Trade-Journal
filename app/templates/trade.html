@@ -1,37 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ trade.instrument }} {{ trade.direction }} · trade-lens
-<script>
-(() => {
-  // Soft-refresh the replay and post-entry feed without reloading the whole page.
-  // This avoids losing scroll position on mobile while the trade is being monitored.
-  let refreshing = false;
-  const refreshReplay = async () => {
-    if (refreshing || document.visibilityState !== "visible") return;
-    refreshing = true;
-    try {
-      const response = await fetch(window.location.href, {
-        cache: "no-store",
-        headers: { "X-Requested-With": "Trade-Lens-Replay-Refresh" }
-      });
-      if (!response.ok) return;
-      const html = await response.text();
-      const nextDocument = new DOMParser().parseFromString(html, "text/html");
-      const currentReplay = document.querySelector(".replay-section");
-      const nextReplay = nextDocument.querySelector(".replay-section");
-      if (currentReplay && nextReplay) currentReplay.replaceWith(nextReplay);
-      const currentWire = document.querySelector("#live-feed");
-      const nextWire = nextDocument.querySelector("#live-feed");
-      if (currentWire && nextWire) currentWire.innerHTML = nextWire.innerHTML;
-    } catch (error) {
-      console.debug("Replay refresh skipped", error);
-    } finally {
-      refreshing = false;
-    }
-  };
-  window.setInterval(refreshReplay, 15000);
-})();
-</script>
-{% endblock %}
+{% block title %}{{ trade.instrument }} {{ trade.direction }} · trade-lens{% endblock %}
 {% block content %}
 <p class="back"><a href="/">Kembali ke daftar</a></p>
 <h1>{{ trade.direction|capitalize }} {{ trade.instrument }} di {{ '%.2f'|format(trade.entry_price) }}</h1>
@@ -119,4 +87,34 @@
 <form method="post" action="/trades/{{ trade.id }}/delete" class="danger-zone" onsubmit="return confirm('Hapus trade ini?')">
   <button class="ghost" type="submit">Hapus trade</button>
 </form>
+<script>
+(() => {
+  // Refresh only the replay and post-entry feed; keep the page and scroll position intact.
+  let refreshing = false;
+  const refreshReplay = async () => {
+    if (refreshing || document.visibilityState !== "visible") return;
+    refreshing = true;
+    try {
+      const response = await fetch(window.location.href, {
+        cache: "no-store",
+        headers: { "X-Requested-With": "Trade-Lens-Replay-Refresh" }
+      });
+      if (!response.ok) return;
+      const html = await response.text();
+      const nextDocument = new DOMParser().parseFromString(html, "text/html");
+      const currentReplay = document.querySelector(".replay-section");
+      const nextReplay = nextDocument.querySelector(".replay-section");
+      if (currentReplay && nextReplay) currentReplay.replaceWith(nextReplay);
+      const currentFeed = document.querySelector("#live-feed");
+      const nextFeed = nextDocument.querySelector("#live-feed");
+      if (currentFeed && nextFeed) currentFeed.innerHTML = nextFeed.innerHTML;
+    } catch (error) {
+      console.debug("Replay refresh skipped", error);
+    } finally {
+      refreshing = false;
+    }
+  };
+  window.setInterval(refreshReplay, 15000);
+})();
+</script>
 {% endblock %}
