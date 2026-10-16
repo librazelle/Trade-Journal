@@ -93,39 +93,39 @@ def trade_detail(request: Request, trade_id: int):
             "SELECT * FROM news WHERE published_at > ? ORDER BY published_at DESC LIMIT 200",
             (row["entry_time"],),
         ).fetchall()
-        # Historical/backfilled articles can have been published before entry but
-        # ingested after the snapshot cutoff. Keep them visible for replay testing,
-        # but label them as hindsight rather than information available to the trader.
+        # Fetch every article published in the pre-entry lookback window. The
+        # replay view will classify it using ingested_at, rather than hiding late data.
         entry_dt = datetime.fromisoformat(row["entry_time"].replace("Z", "+00:00"))
-        late_pre_entry = db.execute(
+        pre_entry_news = db.execute(
             """SELECT * FROM news
                WHERE published_at >= ?
                  AND published_at <= ?
-                 AND ingested_at > ?
                ORDER BY published_at ASC LIMIT 200""",
             (
                 fmt_utc(entry_dt - timedelta(hours=settings.lookback_hours)),
                 row["entry_time"],
-                fmt_utc(entry_dt + timedelta(minutes=1)),
             ),
         ).fetchall()
     trade = dict(row)
     context = [news_view(n) for n in json.loads(trade["context_json"])]
     economic_context = json.loads(trade.get("econ_context_json") or "[]")
     after_view = [news_view(n) for n in after]
-    late_pre_entry_view = [news_view(n) for n in late_pre_entry]
+    pre_entry_news_view = [news_view(n) for n in pre_entry_news]
 
     # Replay timeline is retrospective: pre-entry news is the frozen snapshot,
     # while post-entry news is explicitly marked as hindsight review material.
     replay_items = []
-    for item in context:
+    snapshot_ids = {item.get("id") for item in context}
+    cutoff_utc = fmt_utc(datetime.fromisoformat(trade["entry_time"].replace("Z", "+00:00")) + timedelta(minutes=1))
+    for item in pre_entry_news_view:
+        known_by_entry = item.get("ingested_at") and item["ingested_at"] <= cutoff_utc
         replay_items.append({
             "timestamp": item["published_at"],
             "time": item["published_at"],
             "published_at": item["published_at"],
             "ingested_at": item.get("ingested_at"),
-            "kind": "news",
-            "relation": "Sebelum entry · snapshot",
+            "kind": "news" if known_by_entry else "news-retro-pre",
+            "relation": "Sebelum entry · snapshot" if known_by_entry else "Terbit sebelum entry · masuk setelah cutoff (retrospektif)",
             "title": item["title"],
             "source": item["source"],
             "impact": item["impact"],
@@ -143,22 +143,6 @@ def trade_detail(request: Request, trade_id: int):
             "impact": event["impact"],
             "url": event.get("url"),
             "summary": None,
-        })
-    for item in late_pre_entry_view:
-        # This item was published before entry but arrived in our database later.
-        # Never imply it was available at the time the trade was made.
-        replay_items.append({
-            "timestamp": item["published_at"],
-            "time": item["published_at"],
-            "published_at": item["published_at"],
-            "ingested_at": item.get("ingested_at"),
-            "kind": "news-retro-pre",
-            "relation": "Terbit sebelum entry · masuk setelah cutoff (retrospektif)",
-            "title": item["title"],
-            "source": item["source"],
-            "impact": item["impact"],
-            "url": item.get("url"),
-            "summary": item.get("summary"),
         })
     for item in after_view:
         replay_items.append({
