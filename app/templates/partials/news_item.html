@@ -3,7 +3,7 @@
     <span class="status {{ item.status }}">{{ {'official': 'resmi', 'reported': 'dilaporkan', 'rumor': 'rumor'}.get(item.status, item.status) }}</span>
     <span>{{ item.source }}</span>
     <time>{{ item.published_at|to_local }}</time>
-    {% if item.delay_min is not none %}<span title="Selisih waktu terbit ke waktu masuk sistem">delay {{ item.delay_min }} mnt</span>{% endif %}
+    {% if item.delay_min is not none %}<span title="Selisih waktu terbit ke waktu masuk sistem">latensi terbit→masuk {{ item.delay_min }} mnt</span>{% endif %}
     <span>dampak {{ item.impact }}</span>
   </div>
   <h3>
