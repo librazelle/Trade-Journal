@@ -4,7 +4,9 @@
 
   // Optional community reading modes; preserve the original headline by default.
   const readingMode = document.getElementById("reading-mode");
+  let currentReadingMode = "original";
   const applyReadingMode = (mode) => {
+    currentReadingMode = mode;
     document.querySelectorAll(".news").forEach(article => {
       article.classList.toggle("mode-normal", mode === "normal");
       article.classList.toggle("mode-simple", mode === "simple");
@@ -202,5 +204,6 @@
     const empty = feed.querySelector(".empty");
     if (empty) empty.remove();
     feed.insertAdjacentHTML("afterbegin", e.data);
+    applyReadingMode(currentReadingMode);
   });
 })();
