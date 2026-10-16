@@ -37,6 +37,7 @@
           badge.textContent = source.status || "STALE";
           const detail = document.createElement("p");
           detail.className = "muted";
+          const attemptAge = source.last_attempt_age_seconds;
           if (source.last_success_at) {
             const seconds = source.last_success_age_seconds ?? 0;
             detail.textContent = "Polling sukses " + seconds + " detik lalu";
@@ -45,6 +46,11 @@
           } else {
             detail.textContent = "Menunggu hasil polling pertama";
           }
+          if (attemptAge !== null && attemptAge !== undefined) {
+            detail.textContent += " · pemeriksaan terakhir " + attemptAge + " detik lalu";
+          }
+          detail.textContent += " · item diperiksa " + (source.last_item_count ?? 0);
+          detail.textContent += " · berita baru pada polling terakhir " + (source.last_new_item_count ?? 0);
           if (source.last_new_item_delay_min !== null && source.last_new_item_delay_min !== undefined) {
             detail.textContent += " · latensi berita terakhir " + source.last_new_item_delay_min + " menit";
           }
