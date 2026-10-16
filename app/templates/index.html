@@ -6,8 +6,19 @@
       <h1>Catat entry</h1>
       <form method="post" action="/trades" class="form">
         <div class="fields-2">
-          <label>Instrumen
-            <input name="instrument" value="XAUUSD" autocomplete="off" required>
+          <label>Instrumen / pair
+            <select name="instrument" required>
+              <option value="XAUUSD" selected>XAUUSD · Gold</option>
+              <option value="NASDAQ100">NASDAQ100 · Nasdaq</option>
+              <option value="S&P500">S&P500 · US 500</option>
+              <option value="US30">US30 · Dow Jones</option>
+              <option value="DXY">DXY · US Dollar Index</option>
+              <option value="US10Y">US10Y · Treasury yield</option>
+              <option value="USOIL">USOIL · Crude Oil</option>
+              <option value="EURUSD">EURUSD</option>
+              <option value="USDJPY">USDJPY</option>
+              <option value="BTCUSD">BTCUSD · Bitcoin</option>
+            </select>
           </label>
           <label>Arah
             <select name="direction">
@@ -55,6 +66,25 @@
   </div>
 
   <aside class="pane wire-pane">
+    <section class="priority-news-panel">
+      <h2>Berita berdampak tinggi <span class="muted">· watchlist makro</span></h2>
+      <p class="muted">Peringkat heuristik dari judul, skor dampak, dan sumber resmi. Instrumen terkait bukan jaminan arah atau korelasi statistik.</p>
+      {% if priority_news %}
+        {% for item in priority_news %}
+        <article class="priority-news-item">
+          <div class="priority-news-meta">{{ item.event_type }} · skor dampak {{ item.impact }}{% if item.source %} · {{ item.source }}{% endif %}</div>
+          <h3>{% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</h3>
+          <div class="instrument-chips">
+            {% for instrument in item.instruments %}
+            <span>{{ instrument }}</span>
+            {% endfor %}
+          </div>
+        </article>
+        {% endfor %}
+      {% else %}
+        <p class="empty">Belum ada berita makro berdampak tinggi yang cocok dengan aturan klasifikasi.</p>
+      {% endif %}
+    </section>
     <h2>Berita terbaru <span id="live-status" class="muted">menghubungkan</span></h2>
     <div id="live-feed" class="wire">
       {% for item in news %}{% include "partials/news_item.html" %}
