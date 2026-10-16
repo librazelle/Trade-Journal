@@ -155,22 +155,24 @@ def parse_bls_schedule(html: str, year: int) -> list[dict]:
             if event:
                 events[event["event_id"]] = event
 
-    # Current BLS pages also publish a list view: one visible release per line.
+    # Current BLS pages also publish a list view. HTML line breaks can split
+    # the date/time and linked release title, so normalize the visible text first.
     if not events:
-        lines = [" ".join(line.replace("\xa0", " ").split()) for line in "".join(parser.text_parts).splitlines()]
-        for line in lines:
-            date_match = DATE_RE.search(line)
-            if not date_match:
-                continue
-            time_match = TIME_RE.search(line, date_match.end())
+        visible = " ".join("".join(parser.text_parts).replace("\xa0", " ").split())
+        date_matches = list(DATE_RE.finditer(visible))
+        for index, date_match in enumerate(date_matches):
+            end = date_matches[index + 1].start() if index + 1 < len(date_matches) else len(visible)
+            segment = visible[date_match.start():end]
+            time_match = TIME_RE.search(segment, date_match.end() - date_match.start())
             if not time_match:
                 continue
-            title = line[time_match.end():].strip(" |\t:-")
+            title = segment[time_match.end():].strip(" |\t:-")
             if not title or title.upper().startswith("NOTE:"):
                 continue
             url = f"https://www.bls.gov/schedule/{year}/home.htm"
             for label, href in parser.links:
                 if label.lower() in title.lower():
+                    title = label.strip()
                     url = _absolute_url(href)
                     break
             event = _event(title, date_match.group(0), time_match.group(0), year, url)
