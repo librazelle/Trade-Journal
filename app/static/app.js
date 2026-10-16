@@ -60,14 +60,34 @@
           " · dampak " + (event.impact || "unknown").toUpperCase();
         const countdown = document.createElement("div");
         countdown.className = "calendar-countdown";
-        const remaining = Math.max(0, Date.parse(event.scheduled_at_utc) - now);
-        const hours = Math.floor(remaining / 3600000);
-        const minutes = Math.floor((remaining % 3600000) / 60000);
-        countdown.textContent = hours > 24
-          ? "dalam " + Math.floor(hours / 24) + " hari " + (hours % 24) + " jam"
-          : "dalam " + hours + " jam " + minutes + " menit";
+        countdown.dataset.scheduledAt = event.scheduled_at_utc;
         article.append(title, meta, countdown);
         list.appendChild(article);
+      });
+    };
+
+    const updateCountdowns = () => {
+      const now = Date.now();
+      list.querySelectorAll(".calendar-countdown").forEach(countdown => {
+        const target = Date.parse(countdown.dataset.scheduledAt);
+        const remaining = Math.max(0, Math.floor((target - now) / 1000));
+        if (!Number.isFinite(target)) {
+          countdown.textContent = "Waktu rilis tidak valid";
+          return;
+        }
+        if (remaining === 0) {
+          countdown.textContent = "Waktu rilis tiba";
+          return;
+        }
+        const days = Math.floor(remaining / 86400);
+        const hours = Math.floor((remaining % 86400) / 3600);
+        const minutes = Math.floor((remaining % 3600) / 60);
+        const seconds = remaining % 60;
+        const parts = [];
+        if (days) parts.push(days + " hari");
+        if (days || hours) parts.push(hours + " jam");
+        parts.push(minutes + " menit", seconds + " detik");
+        countdown.textContent = "Rilis dalam " + parts.join(" ");
       });
     };
 
@@ -80,6 +100,8 @@
         upcoming = (payload.events || []).filter(event => event.scheduled_at_utc);
         statusLine.textContent = payload.stale ? "cache lama" : "sumber resmi";
         render();
+        updateCountdowns();
+        window.setInterval(updateCountdowns, 1000);
         window.setInterval(render, 60000);
       })
       .catch(() => {
