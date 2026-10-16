@@ -29,7 +29,7 @@ def _published_utc(entry) -> datetime | None:
 
 class FedRSSConnector(Connector):
     name = "fed_rss"
-    interval_seconds = 60
+    interval_seconds = 30
 
     async def fetch(self, client: httpx.AsyncClient) -> list[NewsItem]:
         resp = await client.get(FED_PRESS_RSS, timeout=20)
