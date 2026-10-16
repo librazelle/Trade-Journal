@@ -16,6 +16,7 @@ from .db import get_db, init_db
 from .services import live
 from .services.context import build_context
 from .services.news import news_view
+from .services.econ_calendar import fetch_bls_calendar
 from .timeutil import fmt_utc, to_local
 from .worker import run_worker
 
@@ -191,3 +192,31 @@ async def stream_news(request: Request):
 @app.get("/health")
 def health():
     return {"ok": True}
+
+
+@app.get("/api/calendar")
+async def economic_calendar(year: int | None = None):
+    """Official BLS release calendar for the selected year (ET converted to UTC)."""
+    current_year = datetime.now(timezone.utc).year
+    selected_year = year or current_year
+    if selected_year < current_year - 1 or selected_year > current_year + 2:
+        raise HTTPException(400, "Tahun kalender harus berada dalam rentang tahun berjalan -1 sampai +2")
+
+    import httpx
+    try:
+        async with httpx.AsyncClient(
+            headers={"User-Agent": settings.user_agent, "Accept": "text/html"},
+            follow_redirects=True,
+        ) as client:
+            events = await fetch_bls_calendar(client, selected_year)
+        return {
+            "year": selected_year,
+            "source": "U.S. Bureau of Labor Statistics",
+            "source_url": f"https://www.bls.gov/schedule/{selected_year}/home.htm",
+            "timezone_source": "America/New_York",
+            "timezone_output": "UTC",
+            "stale": False,
+            "events": events,
+        }
+    except (httpx.HTTPError, ValueError) as exc:
+        raise HTTPException(502, f"Kalender BLS tidak tersedia atau format berubah: {type(exc).__name__}") from None
