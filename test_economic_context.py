@@ -18,7 +18,7 @@ def _insert_event(name, scheduled_at, fetched_at):
                 forecast, previous, actual, fetched_at)
                VALUES (?, ?, 'US', ?, 'high', 'U.S. Bureau of Labor Statistics',
                        'https://www.bls.gov/', NULL, NULL, NULL, ?)""",
-            (name, fmt_utc(scheduled_at), fmt_utc(fetched_at)),
+            (f"test:{name.lower().replace(' ', '-')}", name, fmt_utc(scheduled_at), fmt_utc(fetched_at)),
         )
 
 
