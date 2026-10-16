@@ -40,6 +40,8 @@ def test_create_and_view_trade(client):
     assert detail.status_code == 200
     assert "XAUUSD" in detail.text
     assert "Kalender ekonomi saat entry" in detail.text
+    assert "Replay Mode" in detail.text
+    assert "urutan kejadian" in detail.text
 
 
 def test_invalid_direction_rejected(client):
