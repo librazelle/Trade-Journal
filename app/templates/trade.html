@@ -45,6 +45,9 @@
       <div class="replay-time">{{ item.time|to_local }}</div>
       <div class="replay-body">
         <div class="replay-label">{{ item.relation }} · {{ item.source }} · dampak {{ item.impact }}</div>
+        {% if item.published_at %}
+        <div class="replay-stamps">Terbit: {{ item.published_at|to_local }}{% if item.ingested_at %} · Masuk sistem: {{ item.ingested_at|to_local }}{% endif %}</div>
+        {% endif %}
         {% if item.url %}<a class="replay-title" href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
         {% else %}<strong class="replay-title">{{ item.title }}</strong>{% endif %}
         {% if item.summary %}<p>{{ item.summary }}</p>{% endif %}
