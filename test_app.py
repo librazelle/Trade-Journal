@@ -21,6 +21,8 @@ def test_dashboard_renders(client):
     assert "Berita berdampak tinggi" in r.text
     assert "NASDAQ100" in r.text
     assert "S&amp;P500" in r.text or "S&P500" in r.text
+    assert "Cara baca berita" in r.text
+    assert "Bahasa super gampang" in r.text
 
 
 def test_create_and_view_trade(client):
