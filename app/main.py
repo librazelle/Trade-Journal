@@ -93,10 +93,22 @@ def trade_detail(request: Request, trade_id: int):
             "SELECT * FROM news WHERE published_at > ? ORDER BY published_at DESC LIMIT 200",
             (row["entry_time"],),
         ).fetchall()
+        # Historical/backfilled articles can have been published before entry but
+        # ingested after the snapshot cutoff. Keep them visible for replay testing,
+        # but label them as hindsight rather than information available to the trader.
+        late_pre_entry = db.execute(
+            """SELECT * FROM news
+               WHERE published_at >= datetime(?, '-5 hours')
+                 AND published_at <= ?
+                 AND ingested_at > datetime(?, '+1 minute')
+               ORDER BY published_at ASC LIMIT 200""",
+            (row["entry_time"], row["entry_time"], row["entry_time"]),
+        ).fetchall()
     trade = dict(row)
     context = [news_view(n) for n in json.loads(trade["context_json"])]
     economic_context = json.loads(trade.get("econ_context_json") or "[]")
     after_view = [news_view(n) for n in after]
+    late_pre_entry_view = [news_view(n) for n in late_pre_entry]
 
     # Replay timeline is retrospective: pre-entry news is the frozen snapshot,
     # while post-entry news is explicitly marked as hindsight review material.
@@ -125,6 +137,21 @@ def trade_detail(request: Request, trade_id: int):
             "url": event.get("url"),
             "summary": None,
         })
+    for item in late_pre_entry_view:
+        # This item was published before entry but arrived in our database later.
+        # Never imply it was available at the time the trade was made.
+        if item["id"] not in {snapshot.get("id") for snapshot in context}:
+            replay_items.append({
+                "timestamp": item["published_at"],
+                "time": item["published_at"],
+                "kind": "news-retro-pre",
+                "relation": "Terbit sebelum entry · masuk setelah cutoff (retrospektif)",
+                "title": item["title"],
+                "source": item["source"],
+                "impact": item["impact"],
+                "url": item.get("url"),
+                "summary": item.get("summary"),
+            })
     for item in after_view:
         replay_items.append({
             "timestamp": item["published_at"],
