@@ -41,7 +41,7 @@ class BLSRSSConnector(Connector):
     """Official BLS release/news feed; not a substitute for the release calendar."""
 
     name = "bls_rss"
-    interval_seconds = 60
+    interval_seconds = 30
 
     async def fetch(self, client: httpx.AsyncClient) -> list[NewsItem]:
         response = await client.get(BLS_LATEST_RSS, timeout=20)
