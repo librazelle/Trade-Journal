@@ -29,3 +29,21 @@ def test_high_impact_news_ranks_official_macro_story_first():
 
 def test_unrelated_news_is_not_misclassified():
     assert relevance_for_news("Community event schedule", "Local announcements", 50) is None
+
+
+
+def test_generic_bls_macro_bundle_is_in_priority_list():
+    result = high_impact_news([
+        {
+            "title": "Major Economic Indicators Latest Numbers",
+            "summary": "Consumer Price Index (CPI): +0.6%; unemployment rate and payroll employment data.",
+            "impact": 76,
+            "tier": 1,
+            "source": "U.S. Bureau of Labor Statistics",
+            "published_at": "2026-10-16T12:00:00Z",
+            "tags_list": ["inflation", "jobs"],
+        }
+    ])
+    assert len(result) == 1
+    assert result[0]["event_type"] == "Indikator makro AS (CPI, tenaga kerja, PPI)"
+    assert "XAUUSD" in result[0]["instruments"]
