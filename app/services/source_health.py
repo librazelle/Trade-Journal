@@ -17,10 +17,12 @@ def record_poll(name: str, success: bool, item_count: int = 0,
         state = _state.setdefault(name, {
             "name": name, "last_attempt_at": None, "last_success_at": None,
             "last_error": None, "last_item_count": 0,
+            "last_new_item_count": 0,
             "last_new_item_at": None, "last_new_item_delay_min": None,
         })
         state["last_attempt_at"] = fmt_utc(now)
         state["last_item_count"] = item_count
+        state["last_new_item_count"] = len(new_rows or []) if success else 0
         state["last_error"] = (error[:240] if error else None)
         if success:
             state["last_success_at"] = state["last_attempt_at"]
@@ -63,5 +65,10 @@ def snapshot() -> list[dict]:
         state["last_success_age_seconds"] = (
             round((now - parse_utc(last_success)).total_seconds())
             if last_success else None
+        )
+        last_attempt = state["last_attempt_at"]
+        state["last_attempt_age_seconds"] = (
+            round((now - parse_utc(last_attempt)).total_seconds())
+            if last_attempt else None
         )
     return sorted(states, key=lambda item: item["name"])
