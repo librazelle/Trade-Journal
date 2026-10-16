@@ -25,3 +25,21 @@ def test_parse_bls_schedule_skips_rows_without_timestamp():
     <table><tr><td>Consumer Price Index</td><td>Coming soon</td></tr></table>
     """
     assert parse_bls_schedule(html, 2026) == []
+
+
+
+def test_parse_bls_schedule_list_view():
+    html = """
+    <main>
+      <h2>October 2026</h2>
+      <ul>
+        <li>Wednesday, October 14, 2026 08:30 AM
+          <a href="/news.release/cpi.nr0.htm">Consumer Price Index</a> for September 2026
+        </li>
+      </ul>
+    </main>
+    """
+    events = parse_bls_schedule(html, 2026)
+    assert len(events) == 1
+    assert "Consumer Price Index" in events[0]["name"]
+    assert events[0]["url"].startswith("https://www.bls.gov/")
