@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS trades (
     tp REAL,
     note TEXT NOT NULL DEFAULT '',
     context_json TEXT NOT NULL DEFAULT '[]',
+    econ_context_json TEXT NOT NULL DEFAULT '[]',
     created_at TEXT NOT NULL
 );
 """
@@ -48,6 +49,9 @@ def init_db() -> None:
     try:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA)
+        trade_columns = {row[1] for row in conn.execute("PRAGMA table_info(trades)").fetchall()}
+        if "econ_context_json" not in trade_columns:
+            conn.execute("ALTER TABLE trades ADD COLUMN econ_context_json TEXT NOT NULL DEFAULT '[]'")
         conn.commit()
     finally:
         conn.close()
