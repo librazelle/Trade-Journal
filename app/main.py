@@ -23,6 +23,7 @@ from .services.calendar_store import ensure_calendar_table, save_calendar_events
 from .timeutil import fmt_utc, to_local
 from .worker import run_worker
 from .services.source_health import snapshot as source_health_snapshot
+from .routes.macro_history import router as macro_history_router
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -41,6 +42,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="trade-lens", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+app.include_router(macro_history_router)
 
 
 # ---------- helper input ----------
@@ -68,7 +70,7 @@ def _local_to_utc(value: str) -> datetime:
 # ---------- halaman ----------
 
 @app.get("/", response_class=HTMLResponse)
-def dashboard(request: Request):
+def dashboard(request: Request, macro_import: str | None = None):
     with get_db() as db:
         trades = db.execute("SELECT * FROM trades ORDER BY entry_time DESC LIMIT 50").fetchall()
         news = db.execute("SELECT * FROM news ORDER BY published_at DESC LIMIT 100").fetchall()
@@ -102,6 +104,7 @@ def dashboard(request: Request):
             ],
             "default_entry": now_local,
             "tz": settings.display_tz,
+            "macro_import_message": macro_import,
         },
     )
 
