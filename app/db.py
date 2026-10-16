@@ -21,6 +21,19 @@ CREATE TABLE IF NOT EXISTS news (
 );
 CREATE INDEX IF NOT EXISTS idx_news_published ON news(published_at);
 
+CREATE TABLE IF NOT EXISTS macro_reactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT NOT NULL,
+    instrument TEXT NOT NULL,
+    release_time TEXT NOT NULL,
+    expected_direction TEXT NOT NULL CHECK (expected_direction IN ('up', 'down')),
+    price_before REAL NOT NULL,
+    price_after_15m REAL NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_macro_reactions_event ON macro_reactions(event_type, instrument);
+
 CREATE TABLE IF NOT EXISTS trades (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     instrument TEXT NOT NULL DEFAULT 'XAUUSD',
