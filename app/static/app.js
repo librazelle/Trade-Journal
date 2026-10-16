@@ -2,6 +2,25 @@
   const feed = document.getElementById("live-feed");
   const status = document.getElementById("live-status");
 
+  // Optional community reading modes; preserve the original headline by default.
+  const readingMode = document.getElementById("reading-mode");
+  const applyReadingMode = (mode) => {
+    document.querySelectorAll(".news").forEach(article => {
+      article.classList.toggle("mode-normal", mode === "normal");
+      article.classList.toggle("mode-simple", mode === "simple");
+    });
+  };
+  if (readingMode) {
+    const storedMode = localStorage.getItem("tradeLensReadingMode");
+    const savedMode = ["original", "normal", "simple"].includes(storedMode) ? storedMode : "original";
+    readingMode.value = savedMode;
+    applyReadingMode(savedMode);
+    readingMode.addEventListener("change", () => {
+      localStorage.setItem("tradeLensReadingMode", readingMode.value);
+      applyReadingMode(readingMode.value);
+    });
+  }
+
   // Source health reflects actual server-side RSS poll attempts, not just browser activity.
   const pane = feed && feed.closest(".wire-pane");
   if (pane) {
