@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: trade-lens
+    runtime: python
+    plan: starter
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /
+    envVars:
+      - key: TL_DB_PATH
+        value: /var/data/trade_lens.db
+      - key: TL_DISPLAY_TZ
+        value: Asia/Jakarta
+      - key: TL_ENABLE_WORKER
+        value: "1"
+    disk:
+      name: trade-lens-data
+      mountPath: /var/data
+      sizeGB: 1
