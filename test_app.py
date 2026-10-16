@@ -18,6 +18,9 @@ def test_dashboard_renders(client):
     r = client.get("/")
     assert r.status_code == 200
     assert "Catat entry" in r.text
+    assert "Berita berdampak tinggi" in r.text
+    assert "NASDAQ100" in r.text
+    assert "S&amp;P500" in r.text or "S&P500" in r.text
 
 
 def test_create_and_view_trade(client):
