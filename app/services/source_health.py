@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from threading import Lock
 
-from ..timeutil import parse_utc
+from ..timeutil import fmt_utc, parse_utc
 
 _lock = Lock()
 _state: dict[str, dict] = {}
@@ -19,7 +19,7 @@ def record_poll(name: str, success: bool, item_count: int = 0,
             "last_error": None, "last_item_count": 0,
             "last_new_item_at": None, "last_new_item_delay_min": None,
         })
-        state["last_attempt_at"] = now.isoformat().replace("+00:00", "Z")
+        state["last_attempt_at"] = fmt_utc(now)
         state["last_item_count"] = item_count
         state["last_error"] = (error[:240] if error else None)
         if success:
