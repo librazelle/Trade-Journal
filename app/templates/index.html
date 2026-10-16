@@ -86,6 +86,15 @@
       {% endif %}
     </section>
     <h2>Berita terbaru <span id="live-status" class="muted">menghubungkan</span></h2>
+    <div class="reading-mode-control">
+      <label for="reading-mode">Cara baca berita</label>
+      <select id="reading-mode">
+        <option value="original">Judul &amp; sumber asli</option>
+        <option value="normal">Ringkasan Bahasa Indonesia</option>
+        <option value="simple">Bahasa super gampang · pemula</option>
+      </select>
+      <p class="muted">Penjelasan otomatis untuk membantu memahami konteks, bukan sinyal BUY/SELL. Tetap buka sumber asli untuk detail lengkap.</p>
+    </div>
     <div id="live-feed" class="wire">
       {% for item in news %}{% include "partials/news_item.html" %}
       {% else %}<p class="empty">Belum ada berita. Worker sedang mengambil data pertama.</p>{% endfor %}
