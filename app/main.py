@@ -17,6 +17,7 @@ from .services import live
 from .services.context import build_context
 from .services.economic_context import build_economic_context
 from .services.news import news_view
+from .services.news_relevance import high_impact_news
 from .services.econ_calendar import fetch_bls_calendar
 from .services.calendar_store import ensure_calendar_table, save_calendar_events, list_calendar_events
 from .timeutil import fmt_utc, to_local
@@ -70,14 +71,19 @@ def _local_to_utc(value: str) -> datetime:
 def dashboard(request: Request):
     with get_db() as db:
         trades = db.execute("SELECT * FROM trades ORDER BY entry_time DESC LIMIT 50").fetchall()
-        news = db.execute("SELECT * FROM news ORDER BY published_at DESC LIMIT 30").fetchall()
+        news = db.execute("SELECT * FROM news ORDER BY published_at DESC LIMIT 100").fetchall()
+    news_views = [news_view(n) | {"tier": n["tier"]} for n in news]
+    priority_news = high_impact_news(news_views, limit=5)
+    # Keep the normal dashboard feed concise while ranking macro-sensitive headlines separately.
+    news_views = news_views[:30]
     now_local = datetime.now(ZoneInfo(settings.display_tz)).strftime("%Y-%m-%dT%H:%M")
     return templates.TemplateResponse(
         request,
         "index.html",
         {
             "trades": [dict(t) for t in trades],
-            "news": [news_view(n) for n in news],
+            "news": news_views,
+            "priority_news": priority_news,
             "default_entry": now_local,
             "tz": settings.display_tz,
         },
