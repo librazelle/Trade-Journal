@@ -41,17 +41,19 @@ def high_impact_news(items: list[dict], limit: int = 5) -> list[dict]:
                 item.get("tags", "").replace(",", " ") if isinstance(item.get("tags", ""), str) else "",
             ] if part
         )
-        relevance = relevance_for_news(
-            item.get("title", ""), searchable_summary, item.get("impact", 0)
-        )
         # The official BLS feed sometimes uses a generic title for a bundle of releases.
-        if relevance is None and "major economic indicators latest numbers" in item.get("title", "").lower():
+        # Check this before keyword matching so a CPI mention does not hide the bundle classification.
+        if "major economic indicators latest numbers" in item.get("title", "").lower():
             relevance = {
                 "event_type": "Indikator makro AS (CPI, tenaga kerja, PPI)",
                 "instruments": ["XAUUSD", "NASDAQ100", "S&P500", "DXY", "US10Y"],
                 "impact": int(item.get("impact", 0) or 0),
                 "title": item.get("title", ""),
             }
+        else:
+            relevance = relevance_for_news(
+                item.get("title", ""), searchable_summary, item.get("impact", 0)
+            )
         if not relevance:
             continue
         # Prefer high impact score and official source tier. This is a heuristic,
