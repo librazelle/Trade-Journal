@@ -35,6 +35,28 @@
   {% endif %}
 </section>
 
+<section class="section replay-section">
+  <h2>Replay Mode · urutan kejadian</h2>
+  <p class="muted">Disusun berdasarkan waktu. Snapshot sebelum entry dan jadwal yang diketahui saat entry dipisahkan dari berita setelah entry, yang hanya untuk evaluasi retrospektif.</p>
+  {% if replay_items %}
+  <ol class="replay-timeline">
+    {% for item in replay_items %}
+    <li class="replay-item {{ item.kind }}">
+      <div class="replay-time">{{ item.time|to_local }}</div>
+      <div class="replay-body">
+        <div class="replay-label">{{ item.relation }} · {{ item.source }} · dampak {{ item.impact }}</div>
+        {% if item.url %}<a class="replay-title" href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+        {% else %}<strong class="replay-title">{{ item.title }}</strong>{% endif %}
+        {% if item.summary %}<p>{{ item.summary }}</p>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="empty">Belum ada item untuk timeline replay trade ini.</p>
+  {% endif %}
+</section>
+
 <div class="layout">
   <div class="pane">
     <h2>{{ lookback }} jam sebelum entry</h2>
