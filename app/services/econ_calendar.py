@@ -14,7 +14,7 @@ UTC = ZoneInfo("UTC")
 MONTHS = (
     "January|February|March|April|May|June|July|August|September|October|November|December"
 )
-DATE_RE = re.compile(rf"\b(?:{MONTHS})\s+\d{1,2},\s+\d{4}\b", re.I)
+DATE_RE = re.compile(rf"\b(?:{MONTHS})\s+\d{{1,2}},\s+\d{{4}}\b", re.I)
 TIME_RE = re.compile(r"\b\d{1,2}:\d{2}\s*(?:AM|PM)\b", re.I)
 BLOCK_TAGS = {"br", "p", "li", "tr", "h1", "h2", "h3", "div", "section"}
 
