@@ -358,3 +358,13 @@ a.replay-title:hover { text-decoration: underline; text-underline-offset: 3px; }
 .source-badge.delayed { color: #e6bd72; border-color: #e6bd72; }
 .source-badge.stale { color: #e6bd72; border-color: #e6bd72; }
 .source-badge.offline { color: var(--short); border-color: var(--short); }
+
+
+/* Macro event study */
+.macro-study { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.macro-study > p { margin: 0 0 12px; }
+.table-scroll { overflow-x: auto; margin-top: 8px; }
+.reaction-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+.reaction-table th, .reaction-table td { padding: 9px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+.reaction-table th { color: var(--muted); font-weight: 500; }
+.reaction-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; padding: 10px 0; font-size: 13px; }
