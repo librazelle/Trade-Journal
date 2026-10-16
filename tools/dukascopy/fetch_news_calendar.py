@@ -30,6 +30,7 @@ def local_to_utc(date_text: str, time_text: str) -> str | None:
     date_text = re.sub(r"\s+", " ", date_text.strip())
     time_text = re.sub(r"\s+", " ", time_text.strip()).upper()
     for fmt in ("%B %d, %Y %I:%M %p", "%b %d, %Y %I:%M %p",
+                "%B %d %Y %I:%M %p", "%b %d %Y %I:%M %p",
                 "%Y-%m-%d %I:%M %p"):
         try:
             dt = datetime.strptime(f"{date_text} {time_text}", fmt).replace(tzinfo=ET)
