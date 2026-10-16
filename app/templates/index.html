@@ -54,6 +54,56 @@
       </form>
     </section>
 
+    <section class="section macro-study">
+      <h2>Statistik reaksi news <span class="muted">· catatan historis manual</span></h2>
+      <p class="muted">Catat bias sebelum rilis, harga sebelum rilis, dan harga 15 menit sesudahnya. Win rate hanya mengukur apakah arah 15 menit sesuai bias yang dicatat, bukan profitabilitas trade. Jangan isi bias setelah melihat hasil.</p>
+      <form method="post" action="/macro-reactions" class="form">
+        <div class="fields-2">
+          <label>Event
+            <select name="event_type" required>
+              <option value="CPI">CPI</option><option value="PCE">PCE</option>
+              <option value="NFP">NFP / Employment</option><option value="FOMC">FOMC / Rate decision</option>
+              <option value="GDP">GDP</option><option value="PPI">PPI</option>
+              <option value="Powell Speech">Pidato Powell</option><option value="Geopolitik">Geopolitik</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </label>
+          <label>Instrumen
+            <select name="instrument" required>
+              <option>XAUUSD</option><option>NASDAQ100</option><option>S&amp;P500</option>
+              <option>US30</option><option>DXY</option><option>US10Y</option>
+              <option>USOIL</option><option>EURUSD</option><option>USDJPY</option><option>BTCUSD</option>
+            </select>
+          </label>
+        </div>
+        <label>Waktu rilis ({{ tz }})
+          <input type="datetime-local" name="release_time" value="{{ default_entry }}" required>
+        </label>
+        <div class="fields-2">
+          <label>Bias sebelum rilis
+            <select name="expected_direction" required><option value="up">Naik</option><option value="down">Turun</option></select>
+          </label>
+          <label>Harga sebelum rilis <input name="price_before" inputmode="decimal" placeholder="2650.50" required></label>
+        </div>
+        <label>Harga 15 menit setelah rilis <input name="price_after_15m" inputmode="decimal" placeholder="2655.20" required></label>
+        <label>Catatan / alasan bias <textarea name="note" rows="2"></textarea></label>
+        <button type="submit">Simpan reaksi event</button>
+      </form>
+      {% if reaction_stats %}
+      <h3 class="section">Hasil per event &amp; instrumen</h3>
+      <div class="table-scroll"><table class="reaction-table"><thead><tr><th>Event</th><th>Pair</th><th>Sampel</th><th>Sesuai bias</th></tr></thead><tbody>
+      {% for s in reaction_stats %}
+      <tr><td>{{ s.event_type }}</td><td>{{ s.instrument }}</td><td>{{ s.samples }}</td><td>{{ s.win_rate }}%</td></tr>
+      {% endfor %}
+      </tbody></table></div>
+      {% else %}<p class="empty">Belum ada sampel. Statistik akan muncul setelah reaksi event dicatat.</p>{% endif %}
+      {% if macro_reactions %}
+      <h3 class="section">Riwayat reaksi terbaru</h3>
+      <ul class="trades">{% for r in macro_reactions %}
+        <li><div class="reaction-row"><span>{{ r.event_type }} · {{ r.instrument }}</span><span>{{ r.expected_direction|capitalize }} bias</span><span>{{ '%.4f'|format(r.price_before) }} → {{ '%.4f'|format(r.price_after_15m) }}</span></div></li>
+      {% endfor %}</ul>
+      {% endif %}
+    </section>
     <section class="section">
       <h2>Trade tercatat</h2>
       {% if trades %}
