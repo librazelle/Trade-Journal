@@ -23,6 +23,56 @@
     });
   }
 
+  // Category filters keep the news feed navigable on small screens.
+  const filterBar = document.querySelector(".news-category-nav");
+  const filterCount = document.getElementById("news-filter-count");
+  let activeNewsFilter = "all";
+  const categoryFor = (article) => {
+    const text = (article.innerText || "").toLowerCase();
+    const tags = Array.from(article.querySelectorAll(".tags span")).map(el => el.textContent.toLowerCase()).join(" ");
+    const haystack = text + " " + tags;
+    if (/fomc|federal reserve|\bfed\b|powell|interest rate|rate decision|monetary policy/.test(haystack)) return "fed";
+    if (/inflation|consumer price|\bcpi\b|\bppi\b|\bpce\b|price index/.test(haystack)) return "inflation";
+    if (/nonfarm|payroll|unemployment|employment|job openings|labor market|labour market|wage/.test(haystack)) return "jobs";
+    if (/gdp|gross domestic|productivity|business activity|consumer spending|retail sales|economic growth/.test(haystack)) return "economy";
+    if (/geopolit|war |sanction|tariff|trade war|iran|israel|ukraine|russia|missile|conflict/.test(haystack)) return "geopolitics";
+    if (/oil|crude|opec|energy|natural gas|brent|wti/.test(haystack)) return "energy";
+    return "other";
+  };
+  const applyNewsFilter = () => {
+    if (!feed) return;
+    const articles = Array.from(feed.querySelectorAll(".news"));
+    let visible = 0;
+    articles.forEach(article => {
+      const category = categoryFor(article);
+      article.dataset.newsCategory = category;
+      const show = activeNewsFilter === "all" || category === activeNewsFilter;
+      article.hidden = !show;
+      if (show) visible += 1;
+    });
+    if (filterCount) {
+      const label = filterBar && filterBar.querySelector('[data-news-filter="' + activeNewsFilter + '"]');
+      filterCount.textContent = (label ? label.textContent : "Semua") + " · " + visible + " berita";
+    }
+  };
+  if (filterBar) {
+    filterBar.addEventListener("click", event => {
+      const button = event.target.closest("[data-news-filter]");
+      if (!button) return;
+      activeNewsFilter = button.dataset.newsFilter;
+      filterBar.querySelectorAll(".news-filter").forEach(item => {
+        const active = item === button;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-pressed", String(active));
+      });
+      applyNewsFilter();
+    });
+    filterBar.querySelectorAll(".news-filter").forEach(button => {
+      button.setAttribute("aria-pressed", String(button.dataset.newsFilter === "all"));
+    });
+    applyNewsFilter();
+  }
+
   // Source health reflects actual server-side RSS poll attempts, not just browser activity.
   const pane = feed && feed.closest(".wire-pane");
   if (pane) {
@@ -205,5 +255,6 @@
     if (empty) empty.remove();
     feed.insertAdjacentHTML("afterbegin", e.data);
     applyReadingMode(currentReadingMode);
+    applyNewsFilter();
   });
 })();
