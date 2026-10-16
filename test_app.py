@@ -23,6 +23,9 @@ def test_dashboard_renders(client):
     assert "S&amp;P500" in r.text or "S&P500" in r.text
     assert "Cara baca berita" in r.text
     assert "Bahasa super gampang" in r.text
+    assert "news-category-nav" in r.text
+    assert "data-news-filter=\"inflation\"" in r.text
+    assert "data-news-filter=\"jobs\"" in r.text
 
 
 def test_create_and_view_trade(client):
