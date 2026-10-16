@@ -152,6 +152,33 @@ button.ghost {
   font-size: 12px;
   font-weight: 600;
 }
+.news-category-nav {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 2px 0 9px;
+  margin: 0 0 4px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+button.news-filter {
+  flex: 0 0 auto;
+  width: auto;
+  white-space: nowrap;
+  padding: 8px 11px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 500 13px var(--sans);
+}
+button.news-filter.active {
+  color: var(--bg);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.news-filter-count { margin: 0 0 8px; }
+.news[hidden] { display: none !important; }
 .reading-mode-control {
   margin: 0 0 12px;
   padding: 10px;
