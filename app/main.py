@@ -15,6 +15,7 @@ from .config import settings
 from .db import get_db, init_db
 from .services import live
 from .services.context import build_context
+from .services.economic_context import build_economic_context
 from .services.news import news_view
 from .services.econ_calendar import fetch_bls_calendar
 from .services.calendar_store import ensure_calendar_table, save_calendar_events, list_calendar_events
@@ -99,6 +100,7 @@ def trade_detail(request: Request, trade_id: int):
         {
             "trade": trade,
             "context": [news_view(n) for n in json.loads(trade["context_json"])],
+            "economic_context": json.loads(trade.get("econ_context_json") or "[]"),
             "after": [news_view(n) for n in after],
             "lookback": settings.lookback_hours,
             "tz": settings.display_tz,
@@ -127,14 +129,18 @@ def create_trade(
 
     entry_utc = _local_to_utc(entry_time)
     now = datetime.now(timezone.utc)
-    context = build_context(entry_utc, known_at=now)
+    # datetime-local inputs have minute precision. Allow that minute for the
+    # snapshot cutoff, but never include data fetched after the entry minute.
+    known_at = min(now, entry_utc + timedelta(minutes=1))
+    context = build_context(entry_utc, known_at=known_at)
+    economic_context = build_economic_context(entry_utc, known_at=known_at)
 
     with get_db() as db:
         cur = db.execute(
             """INSERT INTO trades
                (instrument, direction, entry_price, entry_time, lot, sl, tp, note,
-                context_json, created_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                context_json, econ_context_json, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 instrument.strip().upper() or "XAUUSD",
                 direction,
@@ -145,6 +151,7 @@ def create_trade(
                 _parse_float(tp, "TP"),
                 note.strip(),
                 json.dumps(context),
+                json.dumps(economic_context),
                 fmt_utc(now),
             ),
         )
