@@ -122,6 +122,8 @@ def trade_detail(request: Request, trade_id: int):
         replay_items.append({
             "timestamp": item["published_at"],
             "time": item["published_at"],
+            "published_at": item["published_at"],
+            "ingested_at": item.get("ingested_at"),
             "kind": "news",
             "relation": "Sebelum entry · snapshot",
             "title": item["title"],
@@ -148,6 +150,8 @@ def trade_detail(request: Request, trade_id: int):
         replay_items.append({
             "timestamp": item["published_at"],
             "time": item["published_at"],
+            "published_at": item["published_at"],
+            "ingested_at": item.get("ingested_at"),
             "kind": "news-retro-pre",
             "relation": "Terbit sebelum entry · masuk setelah cutoff (retrospektif)",
             "title": item["title"],
@@ -160,6 +164,8 @@ def trade_detail(request: Request, trade_id: int):
         replay_items.append({
             "timestamp": item["published_at"],
             "time": item["published_at"],
+            "published_at": item["published_at"],
+            "ingested_at": item.get("ingested_at"),
             "kind": "news-after",
             "relation": "Setelah entry · tinjauan retrospektif",
             "title": item["title"],
