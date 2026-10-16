@@ -152,6 +152,25 @@ button.ghost {
   font-size: 12px;
   font-weight: 600;
 }
+.reading-mode-control {
+  margin: 0 0 12px;
+  padding: 10px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+}
+.reading-mode-control label { display: block; margin-bottom: 5px; font-size: 13px; color: var(--muted); }
+.reading-mode-control select {
+  width: 100%; padding: 9px 10px; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--rule); border-radius: 2px; font: 16px var(--sans);
+}
+.reading-mode-control p { margin: 6px 0 0; }
+.news-explanations p { margin-top: 7px; }
+.explain-id, .explain-simple, .original-summary { display: none; }
+.news.mode-normal .explain-id { display: block; }
+.news.mode-simple .explain-simple { display: block; }
+.news:not(.mode-normal):not(.mode-simple) .original-summary { display: block; }
+.news.mode-normal .original-summary, .news.mode-normal .explain-simple,
+.news.mode-simple .original-summary, .news.mode-simple .explain-id { display: none; }
 .news {
   padding: 12px 0 12px 12px;
   border-bottom: 1px solid var(--rule);
