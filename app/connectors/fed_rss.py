@@ -18,11 +18,13 @@ def _strip_html(text: str | None) -> str:
     return text[:400]
 
 
-def _published_utc(entry) -> datetime:
+def _published_utc(entry) -> datetime | None:
     parsed = entry.get("published_parsed") or entry.get("updated_parsed")
     if parsed:
         return datetime(*parsed[:6], tzinfo=timezone.utc)
-    return datetime.now(timezone.utc)
+    # Missing publisher time stays unknown; ingestion time must not be used
+    # as a fake publication time in historical entry context.
+    return None
 
 
 class FedRSSConnector(Connector):
@@ -37,6 +39,9 @@ class FedRSSConnector(Connector):
         items: list[NewsItem] = []
         for e in feed.entries:
             link = e.get("link")
+            published_at = _published_utc(e)
+            if not link or not published_at:
+                continue
             items.append(
                 NewsItem(
                     external_id=f"fed:{e.get('id') or link}",
@@ -44,7 +49,7 @@ class FedRSSConnector(Connector):
                     title=(e.get("title") or "").strip(),
                     url=link,
                     summary=_strip_html(e.get("summary")),
-                    published_at=_published_utc(e),
+                    published_at=published_at,
                     tier=1,
                     status="official",
                 )
