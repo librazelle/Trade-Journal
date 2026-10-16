@@ -96,13 +96,18 @@ def trade_detail(request: Request, trade_id: int):
         # Historical/backfilled articles can have been published before entry but
         # ingested after the snapshot cutoff. Keep them visible for replay testing,
         # but label them as hindsight rather than information available to the trader.
+        entry_dt = datetime.fromisoformat(row["entry_time"].replace("Z", "+00:00"))
         late_pre_entry = db.execute(
             """SELECT * FROM news
-               WHERE published_at >= datetime(?, '-5 hours')
+               WHERE published_at >= ?
                  AND published_at <= ?
-                 AND ingested_at > datetime(?, '+1 minute')
+                 AND ingested_at > ?
                ORDER BY published_at ASC LIMIT 200""",
-            (row["entry_time"], row["entry_time"], row["entry_time"]),
+            (
+                fmt_utc(entry_dt - timedelta(hours=settings.lookback_hours)),
+                row["entry_time"],
+                fmt_utc(entry_dt + timedelta(minutes=1)),
+            ),
         ).fetchall()
     trade = dict(row)
     context = [news_view(n) for n in json.loads(trade["context_json"])]
