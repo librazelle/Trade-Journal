@@ -2,9 +2,63 @@
   const feed = document.getElementById("live-feed");
   const status = document.getElementById("live-status");
 
-  // Render calendar values with textContent; source titles are untrusted input.
+  // Source health reflects actual server-side RSS poll attempts, not just browser activity.
   const pane = feed && feed.closest(".wire-pane");
   if (pane) {
+    const healthPanel = document.createElement("section");
+    healthPanel.className = "source-health-panel";
+    const healthHeading = document.createElement("h2");
+    healthHeading.textContent = "Status sumber berita";
+    const healthChecked = document.createElement("p");
+    healthChecked.className = "muted source-health-checked";
+    healthChecked.textContent = "Memeriksa status polling...";
+    const healthList = document.createElement("div");
+    healthList.className = "source-health-list";
+    healthPanel.append(healthHeading, healthChecked, healthList);
+    pane.insertBefore(healthPanel, pane.firstElementChild);
+
+    const refreshSourceHealth = async () => {
+      try {
+        const response = await fetch("/api/source-health", { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const payload = await response.json();
+        healthList.replaceChildren();
+        if (!payload.sources || !payload.sources.length) {
+          healthChecked.textContent = "Menunggu polling pertama dari server.";
+          return;
+        }
+        payload.sources.forEach(source => {
+          const row = document.createElement("article");
+          row.className = "source-health-row";
+          const name = document.createElement("strong");
+          name.textContent = source.label || source.name;
+          const badge = document.createElement("span");
+          badge.className = "source-badge " + String(source.status || "STALE").toLowerCase();
+          badge.textContent = source.status || "STALE";
+          const detail = document.createElement("p");
+          detail.className = "muted";
+          if (source.last_success_at) {
+            const seconds = source.last_success_age_seconds ?? 0;
+            detail.textContent = "Polling sukses " + seconds + " detik lalu";
+          } else if (source.last_error) {
+            detail.textContent = "Belum ada polling sukses · " + source.last_error;
+          } else {
+            detail.textContent = "Menunggu hasil polling pertama";
+          }
+          if (source.last_new_item_delay_min !== null && source.last_new_item_delay_min !== undefined) {
+            detail.textContent += " · latensi berita terakhir " + source.last_new_item_delay_min + " menit";
+          }
+          row.append(name, badge, detail);
+          healthList.appendChild(row);
+        });
+        healthChecked.textContent = "Diperbarui " + new Date(payload.checked_at).toLocaleTimeString("id-ID");
+      } catch (_) {
+        healthChecked.textContent = "Status sumber tidak dapat diambil dari server.";
+      }
+    };
+    refreshSourceHealth();
+    window.setInterval(refreshSourceHealth, 10000);
+
     const section = document.createElement("section");
     section.className = "calendar-panel";
     const heading = document.createElement("h2");
