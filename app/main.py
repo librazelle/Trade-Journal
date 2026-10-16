@@ -2,7 +2,7 @@
 import asyncio
 import json
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -206,6 +206,19 @@ async def economic_calendar(year: int | None = None):
         raise HTTPException(400, "Tahun kalender harus berada dalam rentang tahun berjalan -1 sampai +2")
 
     ensure_calendar_table()
+    cached = list_calendar_events(selected_year)
+    cache_cutoff = fmt_utc(datetime.now(timezone.utc) - timedelta(hours=6))
+    if cached and min(row["fetched_at"] for row in cached) >= cache_cutoff:
+        return {
+            "year": selected_year,
+            "source": "U.S. Bureau of Labor Statistics",
+            "source_url": f"https://www.bls.gov/schedule/{selected_year}/home.htm",
+            "timezone_source": "America/New_York",
+            "timezone_output": "UTC",
+            "stale": False,
+            "events": cached,
+        }
+
     try:
         async with httpx.AsyncClient(
             headers={"User-Agent": settings.user_agent, "Accept": "text/html"},
