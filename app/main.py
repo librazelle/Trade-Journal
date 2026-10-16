@@ -72,6 +72,17 @@ def dashboard(request: Request):
     with get_db() as db:
         trades = db.execute("SELECT * FROM trades ORDER BY entry_time DESC LIMIT 50").fetchall()
         news = db.execute("SELECT * FROM news ORDER BY published_at DESC LIMIT 100").fetchall()
+        reactions = db.execute("SELECT * FROM macro_reactions ORDER BY release_time DESC LIMIT 20").fetchall()
+        reaction_stats = db.execute(
+            """SELECT event_type, instrument, COUNT(*) AS samples,
+                      SUM(CASE
+                          WHEN (expected_direction = 'up' AND price_after_15m > price_before)
+                            OR (expected_direction = 'down' AND price_after_15m < price_before)
+                          THEN 1 ELSE 0 END) AS aligned
+               FROM macro_reactions
+               GROUP BY event_type, instrument
+               ORDER BY samples DESC, event_type, instrument"""
+        ).fetchall()
     news_views = [news_view(n) | {"tier": n["tier"]} for n in news]
     priority_news = high_impact_news(news_views, limit=5)
     # Keep the normal dashboard feed concise while ranking macro-sensitive headlines separately.
@@ -84,6 +95,11 @@ def dashboard(request: Request):
             "trades": [dict(t) for t in trades],
             "news": news_views,
             "priority_news": priority_news,
+            "macro_reactions": [dict(r) for r in reactions],
+            "reaction_stats": [
+                {**dict(r), "win_rate": round(100 * r["aligned"] / r["samples"], 1)}
+                for r in reaction_stats
+            ],
             "default_entry": now_local,
             "tz": settings.display_tz,
         },
@@ -182,6 +198,45 @@ def trade_detail(request: Request, trade_id: int):
 
 
 # ---------- aksi ----------
+
+@app.post("/macro-reactions")
+def create_macro_reaction(
+    event_type: str = Form(...),
+    instrument: str = Form(...),
+    release_time: str = Form(...),
+    expected_direction: str = Form(...),
+    price_before: str = Form(...),
+    price_after_15m: str = Form(...),
+    note: str = Form(""),
+):
+    event_type = event_type.strip()
+    instrument = instrument.strip().upper()
+    if not event_type or len(event_type) > 100:
+        raise HTTPException(400, "Nama event wajib diisi (maksimal 100 karakter)")
+    allowed_instruments = {
+        "XAUUSD", "NASDAQ100", "S&P500", "US30", "DXY", "US10Y",
+        "USOIL", "EURUSD", "USDJPY", "BTCUSD",
+    }
+    if instrument not in allowed_instruments:
+        raise HTTPException(400, "Instrumen tidak valid")
+    if expected_direction not in ("up", "down"):
+        raise HTTPException(400, "Bias harus naik atau turun")
+    before = _parse_float(price_before, "Harga sebelum rilis", required=True)
+    after = _parse_float(price_after_15m, "Harga 15 menit setelah rilis", required=True)
+    if before <= 0 or after <= 0:
+        raise HTTPException(400, "Harga harus lebih dari nol")
+    release_utc = _local_to_utc(release_time)
+    with get_db() as db:
+        db.execute(
+            """INSERT INTO macro_reactions
+               (event_type, instrument, release_time, expected_direction,
+                price_before, price_after_15m, note, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (event_type, instrument, fmt_utc(release_utc), expected_direction,
+             before, after, note.strip(), fmt_utc(datetime.now(timezone.utc))),
+        )
+    return RedirectResponse("/", status_code=303)
+
 
 @app.post("/trades")
 def create_trade(
