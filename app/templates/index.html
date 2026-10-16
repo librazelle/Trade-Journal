@@ -95,6 +95,17 @@
       {% endif %}
     </section>
     <h2>Berita terbaru <span id="live-status" class="muted">menghubungkan</span></h2>
+    <nav class="news-category-nav" aria-label="Filter kategori berita">
+      <button type="button" class="news-filter active" data-news-filter="all">Semua</button>
+      <button type="button" class="news-filter" data-news-filter="fed">The Fed &amp; suku bunga</button>
+      <button type="button" class="news-filter" data-news-filter="inflation">Inflasi</button>
+      <button type="button" class="news-filter" data-news-filter="jobs">Tenaga kerja</button>
+      <button type="button" class="news-filter" data-news-filter="economy">Ekonomi</button>
+      <button type="button" class="news-filter" data-news-filter="geopolitics">Geopolitik &amp; dagang</button>
+      <button type="button" class="news-filter" data-news-filter="energy">Energi</button>
+      <button type="button" class="news-filter" data-news-filter="other">Lainnya</button>
+    </nav>
+    <p id="news-filter-count" class="muted news-filter-count">Menampilkan semua berita</p>
     <div id="live-feed" class="wire">
       {% for item in news %}{% include "partials/news_item.html" %}
       {% else %}<p class="empty">Belum ada berita. Worker sedang mengambil data pertama.</p>{% endfor %}
