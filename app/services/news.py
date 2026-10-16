@@ -7,6 +7,7 @@ from ..connectors.base import NewsItem
 from ..db import get_db
 from ..timeutil import fmt_utc, parse_utc
 from .tagging import impact_score, tag_text
+from .news_explain import explain_news
 
 
 def save_items(items: Iterable[NewsItem], ingested_at: datetime | None = None) -> list[dict]:
@@ -37,6 +38,7 @@ def news_view(row) -> dict:
     """Ubah row atau dict berita menjadi bentuk siap-render: tags list, delay, dan url yang aman."""
     d = dict(row)
     d["tags_list"] = [t for t in (d.get("tags") or "").split(",") if t]
+    d.update(explain_news(d.get("title", ""), d.get("summary", ""), d.get("tags", "")))
     url = d.get("url") or ""
     d["url"] = url if url.startswith(("http://", "https://")) else None
     try:
