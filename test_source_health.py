@@ -10,11 +10,14 @@ def _source(name):
 
 def test_successful_poll_is_live():
     name = "test_live_connector"
-    record_poll(name, True, item_count=3)
+    record_poll(name, True, item_count=3, new_rows=[{"published_at": fmt_utc(datetime.now(timezone.utc)), "ingested_at": fmt_utc(datetime.now(timezone.utc))}])
     result = _source(name)
     assert result["status"] == "LIVE"
     assert result["last_success_at"] is not None
     assert result["last_error"] is None
+    assert result["last_item_count"] == 3
+    assert result["last_new_item_count"] == 1
+    assert result["last_attempt_age_seconds"] is not None
 
 
 def test_recent_news_with_high_ingestion_latency_is_delayed():
@@ -28,3 +31,4 @@ def test_recent_news_with_high_ingestion_latency_is_delayed():
     result = _source(name)
     assert result["status"] == "DELAYED"
     assert result["last_new_item_delay_min"] >= 11
+    assert result["last_new_item_count"] == 1
