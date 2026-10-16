@@ -140,18 +140,17 @@ def trade_detail(request: Request, trade_id: int):
     for item in late_pre_entry_view:
         # This item was published before entry but arrived in our database later.
         # Never imply it was available at the time the trade was made.
-        if item["id"] not in {snapshot.get("id") for snapshot in context}:
-            replay_items.append({
-                "timestamp": item["published_at"],
-                "time": item["published_at"],
-                "kind": "news-retro-pre",
-                "relation": "Terbit sebelum entry · masuk setelah cutoff (retrospektif)",
-                "title": item["title"],
-                "source": item["source"],
-                "impact": item["impact"],
-                "url": item.get("url"),
-                "summary": item.get("summary"),
-            })
+        replay_items.append({
+            "timestamp": item["published_at"],
+            "time": item["published_at"],
+            "kind": "news-retro-pre",
+            "relation": "Terbit sebelum entry · masuk setelah cutoff (retrospektif)",
+            "title": item["title"],
+            "source": item["source"],
+            "impact": item["impact"],
+            "url": item.get("url"),
+            "summary": item.get("summary"),
+        })
     for item in after_view:
         replay_items.append({
             "timestamp": item["published_at"],
