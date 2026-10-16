@@ -11,6 +11,7 @@ from .connectors import CONNECTORS
 from .connectors.base import Connector
 from .services import live
 from .services.news import save_items
+from .services.source_health import record_poll
 
 log = logging.getLogger("trade_lens.worker")
 
@@ -21,6 +22,7 @@ async def _poll(connector: Connector, client: httpx.AsyncClient) -> None:
         try:
             items = await connector.fetch(client)
             new_rows = await asyncio.to_thread(save_items, items)
+            record_poll(connector.name, True, len(items), new_rows)
             if new_rows:
                 log.info("%s: %d item baru", connector.name, len(new_rows))
             # Pada run pertama, item lama hanya disimpan. Tidak disiarkan sebagai "live".
@@ -28,7 +30,8 @@ async def _poll(connector: Connector, client: httpx.AsyncClient) -> None:
                 for row in new_rows:
                     live.publish(row)
             first_run = False
-        except Exception:
+        except Exception as exc:
+            record_poll(connector.name, False, error=f"{type(exc).__name__}: {exc}")
             log.exception("connector %s gagal, dicoba lagi", connector.name)
         await asyncio.sleep(connector.interval_seconds)
 
