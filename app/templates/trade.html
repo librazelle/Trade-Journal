@@ -12,6 +12,29 @@
 </dl>
 {% if trade.note %}<p class="note">{{ trade.note }}</p>{% endif %}
 
+<section class="section economic-snapshot">
+  <h2>Kalender ekonomi saat entry</h2>
+  <p class="muted">Snapshot jadwal yang sudah tersedia pada waktu entry. Jadwal yang baru diambil setelah cutoff tidak dimasukkan.</p>
+  {% if economic_context %}
+  <div class="calendar-list">
+    {% for event in economic_context %}
+    <article class="calendar-event {{ event.impact }}">
+      {% if event.url %}<a class="calendar-title" href="{{ event.url }}" target="_blank" rel="noopener noreferrer">{{ event.name }}</a>
+      {% else %}<strong class="calendar-title">{{ event.name }}</strong>{% endif %}
+      <div class="calendar-meta">
+        {{ event.source }} · WIB {{ event.scheduled_at_utc|to_local }} · dampak {{ event.impact|upper }}
+        {% if event.relation_to_entry == "before" %} · {{ event.hours_from_entry|abs }} jam sebelum entry
+        {% elif event.relation_to_entry == "after" %} · {{ event.hours_from_entry }} jam setelah entry
+        {% else %} · tepat saat entry{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">Tidak ada event kalender yang sudah tersimpan dan diketahui pada cutoff entry.</p>
+  {% endif %}
+</section>
+
 <div class="layout">
   <div class="pane">
     <h2>{{ lookback }} jam sebelum entry</h2>
