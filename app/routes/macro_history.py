@@ -26,7 +26,6 @@ REQUIRED_COLUMNS = {
 def macro_history_template():
     content = (
         "event_type,instrument,release_time,expected_direction,price_before,price_after_15m,note\n"
-        "CPI,XAUUSD,2024-01-11T20:30,down,2020.5,2014.2,Contoh saja; ganti dengan data terverifikasi\n"
     )
     return Response(
         content=content,
