@@ -176,3 +176,28 @@ button.ghost {
     padding-right: 4px;
   }
 }
+
+
+.calendar-panel {
+  margin: 0 0 18px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.calendar-note { margin: 0 0 10px; }
+.calendar-list { display: grid; gap: 0; }
+.calendar-event {
+  padding: 10px 0 10px 10px;
+  border-bottom: 1px solid var(--rule);
+  border-left: 2px solid #6f88a8;
+}
+.calendar-event.high { border-left-color: var(--rumor); }
+.calendar-event.medium { border-left-color: #6f88a8; }
+.calendar-event.low { border-left-color: var(--rule); }
+.calendar-title { display: block; font: 600 16px/1.3 var(--serif); text-decoration: none; }
+.calendar-title:hover { text-decoration: underline; text-underline-offset: 3px; }
+.calendar-meta, .calendar-countdown {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.calendar-countdown { margin-top: 3px; color: var(--ink); }
