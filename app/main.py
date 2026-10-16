@@ -1,0 +1,193 @@
+"""Entry point. Jalankan: uvicorn app.main:app --workers 1"""
+import asyncio
+import json
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+from .config import settings
+from .db import get_db, init_db
+from .services import live
+from .services.context import build_context
+from .services.news import news_view
+from .timeutil import fmt_utc, to_local
+from .worker import run_worker
+
+BASE_DIR = Path(__file__).resolve().parent
+
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+templates.env.filters["to_local"] = to_local
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_db()
+    worker = asyncio.create_task(run_worker()) if settings.enable_worker else None
+    yield
+    if worker:
+        worker.cancel()
+
+
+app = FastAPI(title="trade-lens", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+
+
+# ---------- helper input ----------
+
+def _parse_float(value: str, label: str, required: bool = False) -> float | None:
+    value = (value or "").strip().replace(",", ".")
+    if not value:
+        if required:
+            raise HTTPException(400, f"{label} wajib diisi")
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        raise HTTPException(400, f"{label} harus berupa angka") from None
+
+
+def _local_to_utc(value: str) -> datetime:
+    try:
+        naive = datetime.fromisoformat(value)
+    except ValueError:
+        raise HTTPException(400, "Format waktu entry tidak valid") from None
+    return naive.replace(tzinfo=ZoneInfo(settings.display_tz)).astimezone(timezone.utc)
+
+
+# ---------- halaman ----------
+
+@app.get("/", response_class=HTMLResponse)
+def dashboard(request: Request):
+    with get_db() as db:
+        trades = db.execute("SELECT * FROM trades ORDER BY entry_time DESC LIMIT 50").fetchall()
+        news = db.execute("SELECT * FROM news ORDER BY published_at DESC LIMIT 30").fetchall()
+    now_local = datetime.now(ZoneInfo(settings.display_tz)).strftime("%Y-%m-%dT%H:%M")
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "trades": [dict(t) for t in trades],
+            "news": [news_view(n) for n in news],
+            "default_entry": now_local,
+            "tz": settings.display_tz,
+        },
+    )
+
+
+@app.get("/trades/{trade_id}", response_class=HTMLResponse)
+def trade_detail(request: Request, trade_id: int):
+    with get_db() as db:
+        row = db.execute("SELECT * FROM trades WHERE id = ?", (trade_id,)).fetchone()
+        if row is None:
+            raise HTTPException(404, "Trade tidak ditemukan")
+        after = db.execute(
+            "SELECT * FROM news WHERE published_at > ? ORDER BY published_at DESC LIMIT 200",
+            (row["entry_time"],),
+        ).fetchall()
+    trade = dict(row)
+    return templates.TemplateResponse(
+        request,
+        "trade.html",
+        {
+            "trade": trade,
+            "context": [news_view(n) for n in json.loads(trade["context_json"])],
+            "after": [news_view(n) for n in after],
+            "lookback": settings.lookback_hours,
+            "tz": settings.display_tz,
+        },
+    )
+
+
+# ---------- aksi ----------
+
+@app.post("/trades")
+def create_trade(
+    instrument: str = Form("XAUUSD"),
+    direction: str = Form(...),
+    entry_price: str = Form(...),
+    entry_time: str = Form(...),
+    lot: str = Form(""),
+    sl: str = Form(""),
+    tp: str = Form(""),
+    note: str = Form(""),
+):
+    if direction not in ("long", "short"):
+        raise HTTPException(400, "Arah harus long atau short")
+    price = _parse_float(entry_price, "Harga entry", required=True)
+    if price <= 0:
+        raise HTTPException(400, "Harga entry harus lebih dari 0")
+
+    entry_utc = _local_to_utc(entry_time)
+    now = datetime.now(timezone.utc)
+    context = build_context(entry_utc, known_at=now)
+
+    with get_db() as db:
+        cur = db.execute(
+            """INSERT INTO trades
+               (instrument, direction, entry_price, entry_time, lot, sl, tp, note,
+                context_json, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (
+                instrument.strip().upper() or "XAUUSD",
+                direction,
+                price,
+                fmt_utc(entry_utc),
+                _parse_float(lot, "Lot"),
+                _parse_float(sl, "SL"),
+                _parse_float(tp, "TP"),
+                note.strip(),
+                json.dumps(context),
+                fmt_utc(now),
+            ),
+        )
+        trade_id = cur.lastrowid
+    return RedirectResponse(f"/trades/{trade_id}", status_code=303)
+
+
+@app.post("/trades/{trade_id}/delete")
+def delete_trade(trade_id: int):
+    with get_db() as db:
+        db.execute("DELETE FROM trades WHERE id = ?", (trade_id,))
+    return RedirectResponse("/", status_code=303)
+
+
+# ---------- realtime & kesehatan ----------
+
+@app.get("/stream/news")
+async def stream_news(request: Request):
+    queue = live.subscribe()
+    item_template = templates.get_template("partials/news_item.html")
+
+    async def event_source():
+        try:
+            yield ": connected\n\n"
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    row = await asyncio.wait_for(queue.get(), timeout=15)
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
+                    continue
+                html = item_template.render(item=news_view(row))
+                html = " ".join(html.split())  # satu baris agar aman untuk SSE
+                yield f"event: news\ndata: {html}\n\n"
+        finally:
+            live.unsubscribe(queue)
+
+    return StreamingResponse(
+        event_source(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/health")
+def health():
+    return {"ok": True}

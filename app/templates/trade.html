@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ trade.instrument }} {{ trade.direction }} · trade-lens{% endblock %}
+{% block content %}
+<p class="back"><a href="/">Kembali ke daftar</a></p>
+<h1>{{ trade.direction|capitalize }} {{ trade.instrument }} di {{ '%.2f'|format(trade.entry_price) }}</h1>
+
+<dl class="facts">
+  <div><dt>Waktu entry</dt><dd>{{ trade.entry_time|to_local }}</dd></div>
+  <div><dt>Lot</dt><dd>{{ trade.lot if trade.lot is not none else '–' }}</dd></div>
+  <div><dt>SL</dt><dd>{{ trade.sl if trade.sl is not none else '–' }}</dd></div>
+  <div><dt>TP</dt><dd>{{ trade.tp if trade.tp is not none else '–' }}</dd></div>
+</dl>
+{% if trade.note %}<p class="note">{{ trade.note }}</p>{% endif %}
+
+<div class="layout">
+  <div class="pane">
+    <h2>{{ lookback }} jam sebelum entry</h2>
+    <p class="muted">Berita yang sudah masuk sistem saat trade dicatat. Tidak berubah walau sumbernya di-update.</p>
+    <div class="timeline">
+      <div class="entry-marker">
+        <span class="price">{{ '%.2f'|format(trade.entry_price) }}</span>
+        <span>Entry</span>
+        <span class="when">{{ trade.entry_time|to_local }}</span>
+      </div>
+      {% for item in context %}{% include "partials/news_item.html" %}
+      {% else %}<p class="empty">Tidak ada berita di window ini.</p>{% endfor %}
+    </div>
+  </div>
+
+  <aside class="pane wire-pane">
+    <h2>Setelah entry <span id="live-status" class="muted">menghubungkan</span></h2>
+    <div id="live-feed" class="wire">
+      {% for item in after %}{% include "partials/news_item.html" %}
+      {% else %}<p class="empty">Belum ada berita setelah entry.</p>{% endfor %}
+    </div>
+  </aside>
+</div>
+
+<form method="post" action="/trades/{{ trade.id }}/delete" class="danger-zone" onsubmit="return confirm('Hapus trade ini?')">
+  <button class="ghost" type="submit">Hapus trade</button>
+</form>
+{% endblock %}

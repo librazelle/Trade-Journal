@@ -1,0 +1,66 @@
+"""SQLite sederhana. Satu koneksi per pemanggilan, aman dipakai dari thread mana pun."""
+import sqlite3
+from contextlib import contextmanager
+
+from .config import settings
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS news (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    external_id TEXT NOT NULL UNIQUE,
+    source TEXT NOT NULL,
+    tier INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    title TEXT NOT NULL,
+    url TEXT,
+    summary TEXT,
+    tags TEXT NOT NULL DEFAULT '',
+    impact INTEGER NOT NULL DEFAULT 0,
+    published_at TEXT NOT NULL,
+    ingested_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_news_published ON news(published_at);
+
+CREATE TABLE IF NOT EXISTS trades (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    instrument TEXT NOT NULL DEFAULT 'XAUUSD',
+    direction TEXT NOT NULL CHECK (direction IN ('long', 'short')),
+    entry_price REAL NOT NULL,
+    entry_time TEXT NOT NULL,
+    lot REAL,
+    sl REAL,
+    tp REAL,
+    note TEXT NOT NULL DEFAULT '',
+    context_json TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL
+);
+"""
+
+
+def _connect() -> sqlite3.Connection:
+    conn = sqlite3.connect(settings.db_path, check_same_thread=False, timeout=10)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db() -> None:
+    conn = _connect()
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.executescript(SCHEMA)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+@contextmanager
+def get_db():
+    conn = _connect()
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()

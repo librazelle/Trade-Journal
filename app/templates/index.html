@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="layout">
+  <div class="pane">
+    <section>
+      <h1>Catat entry</h1>
+      <form method="post" action="/trades" class="form">
+        <div class="fields-2">
+          <label>Instrumen
+            <input name="instrument" value="XAUUSD" autocomplete="off" required>
+          </label>
+          <label>Arah
+            <select name="direction">
+              <option value="long">Long</option>
+              <option value="short">Short</option>
+            </select>
+          </label>
+        </div>
+        <label>Harga entry
+          <input name="entry_price" inputmode="decimal" placeholder="2650.50" required>
+        </label>
+        <label>Waktu entry ({{ tz }})
+          <input type="datetime-local" name="entry_time" value="{{ default_entry }}" required>
+        </label>
+        <div class="fields-3">
+          <label>Lot <input name="lot" inputmode="decimal"></label>
+          <label>SL <input name="sl" inputmode="decimal"></label>
+          <label>TP <input name="tp" inputmode="decimal"></label>
+        </div>
+        <label>Catatan
+          <textarea name="note" rows="2"></textarea>
+        </label>
+        <button type="submit">Simpan trade</button>
+      </form>
+    </section>
+
+    <section class="section">
+      <h2>Trade tercatat</h2>
+      {% if trades %}
+      <ul class="trades">
+        {% for t in trades %}
+        <li>
+          <a href="/trades/{{ t.id }}">
+            <span class="dir {{ t.direction }}">{{ t.direction|capitalize }}</span>
+            <span><span class="price">{{ '%.2f'|format(t.entry_price) }}</span> {{ t.instrument }}</span>
+            <span class="when">{{ t.entry_time|to_local }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty">Belum ada trade. Catat entry pertama lewat form di atas.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="pane wire-pane">
+    <h2>Berita terbaru <span id="live-status" class="muted">menghubungkan</span></h2>
+    <div id="live-feed" class="wire">
+      {% for item in news %}{% include "partials/news_item.html" %}
+      {% else %}<p class="empty">Belum ada berita. Worker sedang mengambil data pertama.</p>{% endfor %}
+    </div>
+  </aside>
+</div>
+{% endblock %}
