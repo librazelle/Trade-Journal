@@ -34,9 +34,24 @@ def high_impact_news(items: list[dict], limit: int = 5) -> list[dict]:
     ranked = []
     seen = set()
     for item in items:
-        relevance = relevance_for_news(
-            item.get("title", ""), item.get("summary", ""), item.get("impact", 0)
+        searchable_summary = " ".join(
+            part for part in [
+                item.get("summary", ""),
+                " ".join(item.get("tags_list", []) or []),
+                item.get("tags", "").replace(",", " ") if isinstance(item.get("tags", ""), str) else "",
+            ] if part
         )
+        relevance = relevance_for_news(
+            item.get("title", ""), searchable_summary, item.get("impact", 0)
+        )
+        # The official BLS feed sometimes uses a generic title for a bundle of releases.
+        if relevance is None and "major economic indicators latest numbers" in item.get("title", "").lower():
+            relevance = {
+                "event_type": "Indikator makro AS (CPI, tenaga kerja, PPI)",
+                "instruments": ["XAUUSD", "NASDAQ100", "S&P500", "DXY", "US10Y"],
+                "impact": int(item.get("impact", 0) or 0),
+                "title": item.get("title", ""),
+            }
         if not relevance:
             continue
         # Prefer high impact score and official source tier. This is a heuristic,
