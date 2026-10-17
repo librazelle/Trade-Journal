@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Trade-Lens Trading Journal",
+  "short_name": "Trade-Lens",
+  "description": "Local-first trading journal and market research",
+  "lang": "id-ID",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0d1219",
+  "theme_color": "#0d1219",
+  "icons": [
+    {
+      "src": "/static/trade-lens-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
