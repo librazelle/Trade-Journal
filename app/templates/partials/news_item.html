@@ -1,4 +1,5 @@
-<article class="news {{ item.status }}" data-news-id="{{ item.id }}">
+{% if item.market_relevant|default(true) %}
+<article class="news {{ item.status }}{% if item.market_relevant is defined and not item.market_relevant %} is-filtered-out{% endif %}" data-news-id="{{ item.id }}">
   <div class="meta">
     <span class="status {{ item.status }}">{{ {'official': 'resmi', 'reported': 'dilaporkan', 'rumor': 'rumor'}.get(item.status, item.status) }}</span>
     <span>{{ item.source }}</span>
@@ -20,3 +21,4 @@
   <div class="tags">{% for t in item.tags_list %}<span>{{ t }}</span>{% endfor %}</div>
   {% endif %}
 </article>
+{% endif %}

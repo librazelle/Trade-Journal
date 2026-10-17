@@ -24,20 +24,20 @@ def test_context_window_and_known_at(tmp_path, monkeypatch):
 
     # Terbit dan masuk sistem sebelum entry: masuk window
     save_items([
-        _item("a", "dalam window", entry - timedelta(hours=2)),
-        _item("b", "terlalu lama", entry - timedelta(hours=6)),
+        _item("a", "CPI release dalam window", entry - timedelta(hours=2)),
+        _item("b", "CPI release terlalu lama", entry - timedelta(hours=6)),
     ], ingested_at=entry - timedelta(hours=1))
 
     # Terbit sebelum entry tapi baru masuk setelah known_at: dikecualikan
-    save_items([_item("c", "masuk belakangan", entry - timedelta(hours=1))],
+    save_items([_item("c", "CPI release masuk belakangan", entry - timedelta(hours=1))],
                ingested_at=known_at + timedelta(minutes=5))
 
     # Terbit setelah entry: di luar window
-    save_items([_item("d", "setelah entry", entry + timedelta(hours=1))],
+    save_items([_item("d", "CPI release setelah entry", entry + timedelta(hours=1))],
                ingested_at=entry + timedelta(hours=1, minutes=1))
 
     titles = [r["title"] for r in build_context(entry, known_at)]
-    assert titles == ["dalam window"]
+    assert titles == ["CPI release dalam window"]
 
 
 def test_dedup(tmp_path, monkeypatch):
@@ -45,7 +45,7 @@ def test_dedup(tmp_path, monkeypatch):
     init_db()
 
     now = datetime(2026, 10, 16, 8, 0, tzinfo=UTC)
-    first = save_items([_item("x", "sama", now)])
-    second = save_items([_item("x", "sama", now)])
+    first = save_items([_item("x", "CPI sama", now)])
+    second = save_items([_item("x", "CPI sama", now)])
     assert len(first) == 1
     assert second == []

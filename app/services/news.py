@@ -8,14 +8,18 @@ from ..db import get_db
 from ..timeutil import fmt_utc, parse_utc
 from .tagging import impact_score, tag_text
 from .news_explain import explain_news
+from .news_relevance import is_market_relevant_news
 
 
 def save_items(items: Iterable[NewsItem], ingested_at: datetime | None = None) -> list[dict]:
-    """Simpan item baru dan lewati yang sudah ada. Mengembalikan hanya row yang benar-benar baru."""
+    """Simpan berita market-relevan saja; deduplikasi dilakukan oleh database."""
     ingested_at = ingested_at or datetime.now(timezone.utc)
     new_rows: list[dict] = []
     with get_db() as db:
         for it in items:
+            candidate = {"title": it.title, "summary": it.summary or "", "source": it.source}
+            if not is_market_relevant_news(candidate):
+                continue
             tags = tag_text(f"{it.title} {it.summary or ''}")
             cur = db.execute(
                 """INSERT OR IGNORE INTO news
@@ -38,6 +42,7 @@ def news_view(row) -> dict:
     """Ubah row atau dict berita menjadi bentuk siap-render: tags list, delay, dan url yang aman."""
     d = dict(row)
     d["tags_list"] = [t for t in (d.get("tags") or "").split(",") if t]
+    d["market_relevant"] = is_market_relevant_news(d)
     d.update(explain_news(d.get("title", ""), d.get("summary", ""), d.get("tags", "")))
     url = d.get("url") or ""
     d["url"] = url if url.startswith(("http://", "https://")) else None

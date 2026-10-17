@@ -1,4 +1,4 @@
-"""Additional editorial RSS sources for world affairs and global business news."""
+"""Additional editorial RSS sources for world affairs and global business news.""" 
 from __future__ import annotations
 
 import re
@@ -72,6 +72,13 @@ class BBCBusinessRSSConnector(EditorialRSSConnector):
     feed_url = "https://feeds.bbci.co.uk/news/business/rss.xml"
     source_name = "BBC News · Business"
     source_key = "bbc-business"
+
+
+class BBCEconomicsRSSConnector(EditorialRSSConnector):
+    name = "bbc_economics_rss"
+    feed_url = "https://feeds.bbci.co.uk/news/business/economy/rss.xml"
+    source_name = "BBC News · Economics"
+    source_key = "bbc-economics"
 
 
 class GuardianWorldRSSConnector(EditorialRSSConnector):

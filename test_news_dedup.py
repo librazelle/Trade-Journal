@@ -12,10 +12,10 @@ def test_duplicate_rss_item_is_not_saved_twice(tmp_path, monkeypatch):
     item = NewsItem(
         external_id="test-source:unique-123",
         source="Test Source",
-        title="Test release headline",
+        title="US CPI test release headline",
         published_at=datetime.now(timezone.utc),
         url="https://example.com/test-release",
-        summary="Test summary",
+        summary="Inflation test summary",
         tier=1,
         status="official",
     )
