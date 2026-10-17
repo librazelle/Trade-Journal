@@ -319,7 +319,7 @@ async def explain_news_endpoint(news_id: int, request: Request):
 
     with get_db() as db:
         row = db.execute(
-            "SELECT id, source, title, url, summary FROM news WHERE id = ?",
+            "SELECT id, source, tier, title, url, summary FROM news WHERE id = ?",
             (news_id,),
         ).fetchone()
         if row is None:
