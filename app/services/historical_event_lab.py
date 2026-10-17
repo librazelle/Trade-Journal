@@ -6,6 +6,7 @@ limited to the manually recorded before/15-minute-after observations.
 from __future__ import annotations
 
 from collections import defaultdict
+import math
 from statistics import median, pstdev
 from typing import Iterable
 
@@ -24,7 +25,9 @@ def summarize_reactions(rows: Iterable[dict]) -> list[dict]:
             direction = str(row["expected_direction"]).strip().lower()
         except (KeyError, TypeError, ValueError):
             continue
-        if not event or not instrument or before <= 0 or after <= 0:
+        if not event or not instrument or not math.isfinite(before) or not math.isfinite(after):
+            continue
+        if before <= 0 or after <= 0:
             continue
         if direction not in {"up", "down"}:
             continue
