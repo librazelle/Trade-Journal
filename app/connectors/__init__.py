@@ -2,6 +2,7 @@ from .bls_rss import BLSRSSConnector
 from .fed_rss import FedRSSConnector
 from .media_rss import (
     BBCBusinessRSSConnector,
+    BBCEconomicsRSSConnector,
     BBCWorldRSSConnector,
     GuardianBusinessRSSConnector,
     GuardianWorldRSSConnector,
@@ -12,8 +13,9 @@ from .media_rss import (
 CONNECTORS = [
     FedRSSConnector(),
     BLSRSSConnector(),
-    BBCWorldRSSConnector(),
+    BBCEconomicsRSSConnector(),
     BBCBusinessRSSConnector(),
-    GuardianWorldRSSConnector(),
+    BBCWorldRSSConnector(),
     GuardianBusinessRSSConnector(),
+    GuardianWorldRSSConnector(),
 ]
