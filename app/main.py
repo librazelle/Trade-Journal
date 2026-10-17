@@ -24,6 +24,7 @@ from .timeutil import fmt_utc, to_local
 from .worker import run_worker
 from .services.source_health import snapshot as source_health_snapshot
 from .routes.macro_history import router as macro_history_router
+from .routes.event_lab import router as event_lab_router
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -43,6 +44,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="trade-lens", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 app.include_router(macro_history_router)
+app.include_router(event_lab_router)
 
 
 # ---------- helper input ----------
