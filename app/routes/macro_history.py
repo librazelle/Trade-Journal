@@ -1,6 +1,7 @@
 """Import historical macro-event reactions from a user-supplied CSV."""
 import csv
 import io
+import math
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -76,6 +77,8 @@ async def import_macro_history(file: UploadFile = File(...)):
                 release_time = fmt_utc(release_dt.astimezone(timezone.utc))
                 before = float((row.get("price_before") or "").strip().replace(",", "."))
                 after = float((row.get("price_after_15m") or "").strip().replace(",", "."))
+                if not math.isfinite(before) or not math.isfinite(after):
+                    raise ValueError("harga harus berupa angka finite yang valid")
                 if before <= 0 or after <= 0:
                     raise ValueError("harga harus lebih dari nol")
                 exists = db.execute(
