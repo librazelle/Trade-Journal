@@ -720,3 +720,77 @@ button:active { transform: translateY(1px); }
   .calendar-event.featured .calendar-title { font-size: 17px; }
   .calendar-next { margin-top: 8px; }
 }
+
+
+/* Compact trading toolbar: usable beside a chart on mobile or desktop. */
+.topbar { align-items: center; gap: 12px; }
+.toolbar { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
+.toolbar-menu { position: relative; }
+.toolbar-menu > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid #303946;
+  border-radius: 4px;
+  color: #c7d0dc;
+  font-size: 12px;
+  white-space: nowrap;
+  user-select: none;
+}
+.toolbar-menu > summary::-webkit-details-marker { display: none; }
+.toolbar-menu > summary::after { content: "⌄"; color: #8492a4; font-size: 13px; }
+.toolbar-menu[open] > summary { border-color: #64758a; color: var(--ink); }
+.toolbar-popover {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(290px, calc(100vw - 24px));
+  padding: 7px;
+  border: 1px solid #303946;
+  border-radius: 5px;
+  background: #111720;
+  box-shadow: 0 14px 36px rgba(0,0,0,.38);
+}
+.research-popover { display: grid; gap: 2px; }
+.research-popover a {
+  display: block;
+  padding: 10px;
+  border-radius: 3px;
+  color: #cbd4df;
+  font-size: 12px;
+  text-decoration: none;
+}
+.research-popover a:hover { background: #1b2532; color: #fff; }
+.toolbar-live-dot { width: 6px; height: 6px; border-radius: 50%; background: #75bd91; }
+.time-popover { width: min(300px, calc(100vw - 24px)); padding: 12px; }
+.clock-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 10px 2px;
+  border-bottom: 1px solid #27313e;
+}
+.clock-label { color: #a9b4c3; font-size: 12px; }
+.clock-row strong { font: 500 15px/1.4 var(--mono); font-variant-numeric: tabular-nums; }
+.clock-row small { grid-column: 1 / -1; color: #748296; font: 10px/1.4 var(--mono); }
+.drawdown-row strong { color: #e1bd79; }
+.clock-footnote { margin: 10px 2px 0; color: #8795a8; font-size: 10px; line-height: 1.5; }
+@media (max-width: 600px) {
+  .topbar { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 10px 12px; }
+  .brand { align-self: center; }
+  .toolbar { justify-content: end; gap: 5px; }
+  .toolbar-menu > summary { padding: 7px 8px; font-size: 11px; }
+  .tz { grid-column: 1 / -1; justify-self: end; font-size: 10px; }
+}
+@media (max-width: 360px) {
+  .topbar { grid-template-columns: 1fr; }
+  .brand { justify-self: start; }
+  .toolbar { justify-content: start; }
+  .tz { justify-self: start; }
+}
