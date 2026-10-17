@@ -508,3 +508,18 @@ button.ai-explain-button:disabled { opacity: .6; cursor: wait; }
 .scorecard-asset p { margin: 5px 0; }
 .scorecard-asset small, .news-scorecard > small { display: block; opacity: .78; line-height: 1.45; overflow-wrap: anywhere; }
 @media (min-width: 620px) { .scorecard-assets { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+
+/* Historical Event Lab dashboard */
+.event-lab-panel { margin: 18px 0; padding: 14px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.event-lab-panel h3 { margin: 0 0 6px; }
+.event-lab-panel > p { margin: 6px 0 10px; }
+.event-lab-filters { margin: 10px 0; }
+#event-lab-refresh { width: auto; padding: 9px 12px; }
+#event-lab-results td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+#event-lab-limitations { padding-left: 18px; line-height: 1.5; }
+#event-lab-limitations:empty { display: none; }
+@media (max-width: 600px) {
+  .event-lab-panel { padding: 12px 0; }
+  .event-lab-panel .table-scroll { max-width: 100%; }
+}
