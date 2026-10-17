@@ -1,0 +1,805 @@
+From 5ddb3c1fe2d564057ee55c652d126a5e2c4007b1 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 17 Oct 2026 10:42:28 +0000
+Subject: [PATCH] Perbaiki layout mobile dan bug APK
+
+- APK: tambahkan padding untuk system bars (targetSdk 35 edge-to-edge)
+- APK: aktifkan file chooser agar impor CSV jalan di WebView
+- APK: buka link ke luar domain di browser, bukan di WebView
+- Web: navigasi tab bawah di mobile (Kalender, Jurnal, Berita)
+- Web: kalender jadi panel sendiri, countdown lebih ringkas, badge dampak berwarna
+- Web: Arah dan Bias pakai tombol segmen, impor CSV dan status sumber dilipat
+- Web: placeholder harga diberi label contoh
+- pytest.ini: testpaths ke root, sesuai lokasi test_*.py
+---
+ android-app/app/build.gradle.kts              |   5 +
+ .../java/com/tradelens/app/MainActivity.kt    |  89 +++++++-
+ app/static/app.js                             | 206 ++++++++++--------
+ app/static/style.css                          | 108 ++++++++-
+ app/templates/index.html                      |  82 ++++---
+ pytest.ini                                    |   2 +-
+ 6 files changed, 367 insertions(+), 125 deletions(-)
+
+diff --git a/android-app/app/build.gradle.kts b/android-app/app/build.gradle.kts
+index 63502db..95dc891 100644
+--- a/android-app/app/build.gradle.kts
++++ b/android-app/app/build.gradle.kts
+@@ -29,3 +29,8 @@ android {
+         jvmTarget = "17"
+     }
+ }
++
++dependencies {
++    // WindowInsetsCompat / ViewCompat untuk padding status bar dan keyboard.
++    implementation("androidx.core:core-ktx:1.13.1")
++}
+diff --git a/android-app/app/src/main/java/com/tradelens/app/MainActivity.kt b/android-app/app/src/main/java/com/tradelens/app/MainActivity.kt
+index aa16bb6..2b95cb0 100644
+--- a/android-app/app/src/main/java/com/tradelens/app/MainActivity.kt
++++ b/android-app/app/src/main/java/com/tradelens/app/MainActivity.kt
+@@ -2,10 +2,14 @@ package com.tradelens.app
+ 
+ import android.annotation.SuppressLint
+ import android.app.Activity
++import android.content.ActivityNotFoundException
++import android.content.Intent
+ import android.graphics.Bitmap
++import android.net.Uri
+ import android.os.Bundle
+ import android.view.View
+ import android.webkit.CookieManager
++import android.webkit.ValueCallback
+ import android.webkit.WebChromeClient
+ import android.webkit.WebResourceError
+ import android.webkit.WebResourceRequest
+@@ -14,6 +18,8 @@ import android.webkit.WebViewClient
+ import android.widget.Button
+ import android.widget.ProgressBar
+ import android.widget.TextView
++import androidx.core.view.ViewCompat
++import androidx.core.view.WindowInsetsCompat
+ 
+ class MainActivity : Activity() {
+ 
+@@ -22,14 +28,21 @@ class MainActivity : Activity() {
+     private lateinit var errorPanel: View
+     private lateinit var errorMessage: TextView
+ 
++    // Callback dari <input type="file"> di WebView. Diisi saat file chooser dibuka.
++    private var filePathCallback: ValueCallback<Array<Uri>>? = null
++
+     private val startUrl = "https://trade-journal-f8lp.onrender.com/"
++    private val appHost = Uri.parse(startUrl).host
++    private val backgroundColor = android.graphics.Color.rgb(16, 20, 27)
++    private val fileChooserRequestCode = 1001
+ 
+     @SuppressLint("SetJavaScriptEnabled")
+     override fun onCreate(savedInstanceState: Bundle?) {
+         super.onCreate(savedInstanceState)
+-        window.statusBarColor = android.graphics.Color.rgb(16, 20, 27)
+-        window.navigationBarColor = android.graphics.Color.rgb(16, 20, 27)
++        window.statusBarColor = backgroundColor
++        window.navigationBarColor = backgroundColor
+         setContentView(R.layout.activity_main)
++        applySystemBarInsets()
+ 
+         webView = findViewById(R.id.webView)
+         progressBar = findViewById(R.id.progressBar)
+@@ -40,6 +53,7 @@ class MainActivity : Activity() {
+         CookieManager.getInstance().setAcceptCookie(true)
+         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
+ 
++        webView.setBackgroundColor(backgroundColor)
+         webView.settings.javaScriptEnabled = true
+         webView.settings.domStorageEnabled = true
+         webView.settings.loadsImagesAutomatically = true
+@@ -47,12 +61,32 @@ class MainActivity : Activity() {
+         webView.settings.loadWithOverviewMode = true
+         webView.settings.javaScriptCanOpenWindowsAutomatically = false
+         webView.settings.setSupportMultipleWindows(false)
++
+         webView.webChromeClient = object : WebChromeClient() {
+             override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                 progressBar.progress = newProgress
+                 progressBar.visibility = if (newProgress < 100) View.VISIBLE else View.GONE
+             }
++
++            // Tanpa ini, tombol "Choose File" di form impor CSV tidak melakukan apa-apa di APK.
++            override fun onShowFileChooser(
++                view: WebView?,
++                callback: ValueCallback<Array<Uri>>?,
++                params: WebChromeClient.FileChooserParams?
++            ): Boolean {
++                val intent = params?.createIntent() ?: return false
++                filePathCallback?.onReceiveValue(null)
++                filePathCallback = callback
++                return try {
++                    startActivityForResult(intent, fileChooserRequestCode)
++                    true
++                } catch (e: ActivityNotFoundException) {
++                    filePathCallback = null
++                    false
++                }
++            }
+         }
++
+         webView.webViewClient = object : WebViewClient() {
+             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                 errorPanel.visibility = View.GONE
+@@ -75,12 +109,61 @@ class MainActivity : Activity() {
+                     progressBar.visibility = View.GONE
+                 }
+             }
++
++            // Link berita dan kalender memakai target="_blank". Tanpa ini, link itu menggantikan
++            // halaman app di WebView yang sama. Link ke luar domain dibuka di browser.
++            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean =
++                openExternal(request?.url)
++
++            @Suppress("OverridingDeprecatedMember", "DEPRECATION")
++            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean =
++                openExternal(url?.let { Uri.parse(it) })
+         }
+ 
+         if (savedInstanceState == null) loadApp()
+         else webView.restoreState(savedInstanceState)
+     }
+ 
++    /**
++     * targetSdk 35 membuat app edge-to-edge di Android 15 ke atas, sehingga WebView tertimpa
++     * status bar. Padding diberikan sesuai system bars, dan bagian bawah ikut tinggi keyboard.
++     */
++    private fun applySystemBarInsets() {
++        val content = findViewById<View>(android.R.id.content)
++        content.setBackgroundColor(backgroundColor)
++        ViewCompat.setOnApplyWindowInsetsListener(content) { view, insets ->
++            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
++            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
++            view.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
++            WindowInsetsCompat.CONSUMED
++        }
++    }
++
++    private fun openExternal(uri: Uri?): Boolean {
++        if (uri == null) return false
++        val isWeb = uri.scheme == "http" || uri.scheme == "https"
++        val isExternal = (isWeb && uri.host != appHost) || uri.scheme == "mailto" || uri.scheme == "tel"
++        if (!isExternal) return false
++        return try {
++            startActivity(Intent(Intent.ACTION_VIEW, uri))
++            true
++        } catch (e: ActivityNotFoundException) {
++            false
++        }
++    }
++
++    // Dipanggil oleh WebChromeClient.onShowFileChooser untuk membuka pemilih file.
++    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
++        if (requestCode == fileChooserRequestCode) {
++            filePathCallback?.onReceiveValue(
++                WebChromeClient.FileChooserParams.parseResult(resultCode, data)
++            )
++            filePathCallback = null
++        } else {
++            super.onActivityResult(requestCode, resultCode, data)
++        }
++    }
++
+     private fun loadApp() {
+         errorPanel.visibility = View.GONE
+         webView.visibility = View.VISIBLE
+@@ -99,6 +182,8 @@ class MainActivity : Activity() {
+     }
+ 
+     override fun onDestroy() {
++        filePathCallback?.onReceiveValue(null)
++        filePathCallback = null
+         if (this::webView.isInitialized) {
+             webView.stopLoading()
+             webView.destroy()
+diff --git a/app/static/app.js b/app/static/app.js
+index 7bb3e3d..f2153de 100644
+--- a/app/static/app.js
++++ b/app/static/app.js
+@@ -1,8 +1,52 @@
+ (function () {
+   const feed = document.getElementById("live-feed");
+-  const status = document.getElementById("live-status");
++  const liveStatus = document.getElementById("live-status");
+ 
+-  // Optional community reading modes; preserve the original headline by default.
++  const emptyParagraph = (text) => {
++    const p = document.createElement("p");
++    p.className = "empty";
++    p.textContent = text;
++    return p;
++  };
++
++  // ---------- Tab bawah (mobile). Di desktop semua panel tampil sekaligus. ----------
++  const layout = document.querySelector(".layout");
++  const tabBar = document.querySelector(".mobile-tabs");
++  if (layout && tabBar) {
++    const setTab = (name) => {
++      layout.dataset.activeTab = name;
++      tabBar.querySelectorAll("[data-tab-target]").forEach(button => {
++        const active = button.dataset.tabTarget === name;
++        button.classList.toggle("active", active);
++        button.setAttribute("aria-selected", String(active));
++      });
++      window.scrollTo({ top: 0 });
++    };
++    tabBar.addEventListener("click", event => {
++      const button = event.target.closest("[data-tab-target]");
++      if (button) setTab(button.dataset.tabTarget);
++    });
++    setTab(layout.dataset.activeTab || "calendar");
++  }
++
++  // ---------- Tombol segmen (Long/Short, Naik/Turun) ----------
++  document.querySelectorAll(".segmented").forEach(group => {
++    const field = group.closest(".field");
++    const input = field && field.querySelector('input[type="hidden"]');
++    if (!input) return;
++    group.addEventListener("click", event => {
++      const button = event.target.closest("button[data-value]");
++      if (!button) return;
++      input.value = button.dataset.value;
++      group.querySelectorAll("button[data-value]").forEach(item => {
++        const active = item === button;
++        item.classList.toggle("active", active);
++        item.setAttribute("aria-pressed", String(active));
++      });
++    });
++  });
++
++  // ---------- Pilihan cara baca berita (tersimpan di localStorage) ----------
+   const readingMode = document.getElementById("reading-mode");
+   let currentReadingMode = "original";
+   const applyReadingMode = (mode) => {
+@@ -23,7 +67,7 @@
+     });
+   }
+ 
+-  // Category filters keep the news feed navigable on small screens.
++  // ---------- Filter kategori berita ----------
+   const filterBar = document.querySelector(".news-category-nav");
+   const filterCount = document.getElementById("news-filter-count");
+   let activeNewsFilter = "all";
+@@ -73,20 +117,20 @@
+     applyNewsFilter();
+   }
+ 
+-  // Source health reflects actual server-side RSS poll attempts, not just browser activity.
++  // ---------- Status sumber berita (disembunyikan di balik <details>) ----------
+   const pane = feed && feed.closest(".wire-pane");
+   if (pane) {
+-    const healthPanel = document.createElement("section");
++    const healthPanel = document.createElement("details");
+     healthPanel.className = "source-health-panel";
+-    const healthHeading = document.createElement("h2");
+-    healthHeading.textContent = "Status sumber berita";
++    const healthSummary = document.createElement("summary");
++    healthSummary.textContent = "Status sumber berita";
+     const healthChecked = document.createElement("p");
+     healthChecked.className = "muted source-health-checked";
+     healthChecked.textContent = "Memeriksa status polling...";
+     const healthList = document.createElement("div");
+     healthList.className = "source-health-list";
+-    healthPanel.append(healthHeading, healthChecked, healthList);
+-    pane.insertBefore(healthPanel, pane.firstElementChild);
++    healthPanel.append(healthSummary, healthChecked, healthList);
++    pane.insertBefore(healthPanel, pane.querySelector(".priority-news-panel"));
+ 
+     const refreshSourceHealth = async () => {
+       try {
+@@ -104,27 +148,23 @@
+           const name = document.createElement("strong");
+           name.textContent = source.label || source.name;
+           const badge = document.createElement("span");
+-          badge.className = "source-badge " + String(source.status || "STALE").toLowerCase();
+-          badge.textContent = source.status || "STALE";
+-          const detail = document.createElement("p");
+-          detail.className = "muted";
+-          const attemptAge = source.last_attempt_age_seconds;
++          const state = source.status || "STALE";
++          badge.className = "source-badge " + String(state).toLowerCase();
++          badge.textContent = state;
++          const parts = [];
+           if (source.last_success_at) {
+-            const seconds = source.last_success_age_seconds ?? 0;
+-            detail.textContent = "Polling sukses " + seconds + " detik lalu";
++            parts.push("polling berhasil " + (source.last_success_age_seconds ?? 0) + " detik lalu");
+           } else if (source.last_error) {
+-            detail.textContent = "Belum ada polling sukses · " + source.last_error;
++            parts.push("belum berhasil · " + source.last_error);
+           } else {
+-            detail.textContent = "Menunggu hasil polling pertama";
++            parts.push("menunggu polling pertama");
+           }
+-          if (attemptAge !== null && attemptAge !== undefined) {
+-            detail.textContent += " · pemeriksaan terakhir " + attemptAge + " detik lalu";
+-          }
+-          detail.textContent += " · item diperiksa " + (source.last_item_count ?? 0);
+-          detail.textContent += " · berita baru pada polling terakhir " + (source.last_new_item_count ?? 0);
+           if (source.last_new_item_delay_min !== null && source.last_new_item_delay_min !== undefined) {
+-            detail.textContent += " · latensi berita terakhir " + source.last_new_item_delay_min + " menit";
++            parts.push("latensi " + source.last_new_item_delay_min + " menit");
+           }
++          const detail = document.createElement("p");
++          detail.className = "muted";
++          detail.textContent = parts.join(" · ");
+           row.append(name, badge, detail);
+           healthList.appendChild(row);
+         });
+@@ -135,93 +175,91 @@
+     };
+     refreshSourceHealth();
+     window.setInterval(refreshSourceHealth, 10000);
++  }
+ 
+-    const section = document.createElement("section");
+-    section.className = "calendar-panel";
+-    const heading = document.createElement("h2");
+-    heading.textContent = "Kalender ekonomi AS";
+-    const statusLine = document.createElement("span");
+-    statusLine.className = "muted calendar-status";
+-    statusLine.textContent = "memuat jadwal BLS";
+-    heading.appendChild(document.createTextNode(" "));
+-    heading.appendChild(statusLine);
+-    const note = document.createElement("p");
+-    note.className = "muted calendar-note";
+-    note.textContent = "Jadwal rilis resmi BLS. Waktu dalam WIB dan US Eastern. Forecast/actual tidak diada-adakan.";
+-    const list = document.createElement("div");
+-    list.className = "calendar-list";
+-    const empty = document.createElement("p");
+-    empty.className = "empty";
+-    empty.textContent = "Mengambil jadwal resmi...";
+-    list.appendChild(empty);
+-    section.append(heading, note, list);
+-    pane.insertBefore(section, pane.firstElementChild);
++  // ---------- Kalender ekonomi AS (jadwal resmi BLS) ----------
++  const calendarPanel = document.getElementById("calendar-panel");
++  if (calendarPanel) initCalendar(calendarPanel);
+ 
++  function initCalendar(panel) {
++    const statusLine = panel.querySelector("#calendar-status");
++    const list = panel.querySelector("#calendar-list");
++    const pad = (n) => String(n).padStart(2, "0");
+     const formatTime = (date, zone) => new Intl.DateTimeFormat("id-ID", {
+       timeZone: zone, day: "2-digit", month: "short",
+       hour: "2-digit", minute: "2-digit", hour12: false
+     }).format(date);
+ 
++    // Jarak jauh cukup hari dan jam. Hanya di bawah satu jam countdown memakai mm:ss.
++    const countdownText = (remaining) => {
++      if (remaining <= 0) return { text: "Rilis sekarang", soon: true };
++      if (remaining < 3600) {
++        return { text: "Rilis dalam " + pad(Math.floor(remaining / 60)) + ":" + pad(remaining % 60), soon: true };
++      }
++      const days = Math.floor(remaining / 86400);
++      const hours = Math.floor((remaining % 86400) / 3600);
++      const minutes = Math.floor((remaining % 3600) / 60);
++      if (days === 0) return { text: "Rilis dalam " + hours + " jam " + minutes + " menit", soon: false };
++      return { text: "Rilis dalam " + days + " hari " + hours + " jam", soon: false };
++    };
++
+     let upcoming = [];
++
++    const updateCountdowns = () => {
++      const now = Date.now();
++      list.querySelectorAll(".calendar-countdown").forEach(node => {
++        const target = Date.parse(node.dataset.scheduledAt);
++        if (!Number.isFinite(target)) {
++          node.textContent = "Waktu rilis tidak valid";
++          node.classList.remove("soon");
++          return;
++        }
++        const { text, soon } = countdownText(Math.max(0, Math.floor((target - now) / 1000)));
++        if (node.textContent !== text) node.textContent = text;
++        node.classList.toggle("soon", soon);
++      });
++    };
++
+     const render = () => {
+-      list.replaceChildren();
+       const now = Date.now();
+       upcoming = upcoming.filter(event => Date.parse(event.scheduled_at_utc) >= now);
++      list.replaceChildren();
+       if (!upcoming.length) {
+-        const p = document.createElement("p");
+-        p.className = "empty";
+-        p.textContent = "Tidak ada jadwal BLS mendatang pada data yang tersedia.";
+-        list.appendChild(p);
++        list.appendChild(emptyParagraph("Tidak ada jadwal BLS mendatang pada data yang tersedia."));
+         return;
+       }
+       upcoming.slice(0, 8).forEach(event => {
++        const impact = ["high", "medium", "low"].includes(event.impact) ? event.impact : "unknown";
+         const article = document.createElement("article");
+-        article.className = "calendar-event " + (event.impact || "medium");
++        article.className = "calendar-event " + impact;
++
+         const title = document.createElement("a");
+         title.className = "calendar-title";
+         title.textContent = event.name || "Rilis ekonomi";
+         title.href = event.url || event.source_url || "https://www.bls.gov/schedule/";
+         title.target = "_blank";
+         title.rel = "noopener noreferrer";
++
++        const date = new Date(event.scheduled_at_utc);
+         const meta = document.createElement("div");
+         meta.className = "calendar-meta";
+-        const date = new Date(event.scheduled_at_utc);
+-        meta.textContent = "WIB " + formatTime(date, "Asia/Jakarta") +
+-          " · ET " + formatTime(date, "America/New_York") +
+-          " · dampak " + (event.impact || "unknown").toUpperCase();
++        meta.textContent = "WIB " + formatTime(date, "Asia/Jakarta") + " · ET " + formatTime(date, "America/New_York") + " · ";
++        const badge = document.createElement("span");
++        badge.className = "impact-badge " + impact;
++        badge.textContent = impact === "unknown" ? "DAMPAK ?" : impact.toUpperCase();
++        meta.appendChild(badge);
++
+         const countdown = document.createElement("div");
+         countdown.className = "calendar-countdown";
+         countdown.dataset.scheduledAt = event.scheduled_at_utc;
++
+         article.append(title, meta, countdown);
+         list.appendChild(article);
+       });
++      updateCountdowns();
+     };
+ 
+-    const updateCountdowns = () => {
+-      const now = Date.now();
+-      list.querySelectorAll(".calendar-countdown").forEach(countdown => {
+-        const target = Date.parse(countdown.dataset.scheduledAt);
+-        const remaining = Math.max(0, Math.floor((target - now) / 1000));
+-        if (!Number.isFinite(target)) {
+-          countdown.textContent = "Waktu rilis tidak valid";
+-          return;
+-        }
+-        if (remaining === 0) {
+-          countdown.textContent = "Waktu rilis tiba";
+-          return;
+-        }
+-        const days = Math.floor(remaining / 86400);
+-        const hours = Math.floor((remaining % 86400) / 3600);
+-        const minutes = Math.floor((remaining % 3600) / 60);
+-        const seconds = remaining % 60;
+-        const parts = [];
+-        if (days) parts.push(days + " hari");
+-        if (days || hours) parts.push(hours + " jam");
+-        parts.push(minutes + " menit", seconds + " detik");
+-        countdown.textContent = "Rilis dalam " + parts.join(" ");
+-      });
+-    };
+-
++    list.replaceChildren(emptyParagraph("Mengambil jadwal resmi..."));
+     fetch("/api/calendar")
+       .then(response => {
+         if (!response.ok) throw new Error("HTTP " + response.status);
+@@ -231,22 +269,18 @@
+         upcoming = (payload.events || []).filter(event => event.scheduled_at_utc);
+         statusLine.textContent = payload.stale ? "cache lama" : "sumber resmi";
+         render();
+-        updateCountdowns();
+         window.setInterval(updateCountdowns, 1000);
+         window.setInterval(render, 60000);
+       })
+       .catch(() => {
+         statusLine.textContent = "tidak tersedia";
+-        list.replaceChildren();
+-        const p = document.createElement("p");
+-        p.className = "empty";
+-        p.textContent = "Jadwal BLS gagal dimuat. Feed berita tetap berjalan.";
+-        list.appendChild(p);
++        list.replaceChildren(emptyParagraph("Jadwal BLS gagal dimuat. Feed berita tetap berjalan."));
+       });
+   }
+ 
++  // ---------- Berita live lewat SSE ----------
+   if (!feed || !window.EventSource) return;
+-  const setStatus = (text) => { if (status) status.textContent = text; };
++  const setStatus = (text) => { if (liveStatus) liveStatus.textContent = text; };
+   const es = new EventSource("/stream/news");
+   es.onopen = () => setStatus("tersambung");
+   es.onerror = () => setStatus("menyambung ulang");
+diff --git a/app/static/style.css b/app/static/style.css
+index daced2e..8f260d9 100644
+--- a/app/static/style.css
++++ b/app/static/style.css
+@@ -247,20 +247,22 @@ button.news-filter.active {
+ 
+ 
+ .calendar-panel {
+-  margin: 0 0 18px;
++  grid-column: 1 / -1;
++  margin: 0;
+   padding: 0 0 16px;
+   border-bottom: 1px solid var(--rule);
+ }
++.calendar-panel > h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+ .calendar-note { margin: 0 0 10px; }
+ .calendar-list { display: grid; gap: 0; }
+ .calendar-event {
+-  padding: 10px 0 10px 10px;
++  padding: 10px 0 10px 12px;
+   border-bottom: 1px solid var(--rule);
+-  border-left: 2px solid #6f88a8;
++  border-left: 3px solid #4a5b74;
+ }
+-.calendar-event.high { border-left-color: var(--rumor); }
+-.calendar-event.medium { border-left-color: #6f88a8; }
+-.calendar-event.low { border-left-color: var(--rule); }
++.calendar-event.high { border-left-color: var(--short); }
++.calendar-event.medium { border-left-color: var(--rumor); }
++.calendar-event.low, .calendar-event.unknown { border-left-color: #4a5b74; }
+ .calendar-title { display: block; font: 600 16px/1.3 var(--serif); text-decoration: none; }
+ .calendar-title:hover { text-decoration: underline; text-underline-offset: 3px; }
+ .calendar-meta, .calendar-countdown {
+@@ -268,7 +270,24 @@ button.news-filter.active {
+   font-size: 12px;
+   font-variant-numeric: tabular-nums;
+ }
+-.calendar-countdown { margin-top: 3px; color: var(--ink); }
++.calendar-meta { margin-top: 2px; }
++.calendar-countdown { margin-top: 4px; color: var(--ink); }
++.calendar-countdown.soon { color: var(--rumor); font-weight: 600; font-size: 14px; }
++.impact-badge {
++  display: inline-block;
++  margin-left: 2px;
++  padding: 0 6px;
++  border: 1px solid currentColor;
++  border-radius: 2px;
++  font-size: 10px;
++  font-weight: 700;
++  letter-spacing: .06em;
++  line-height: 16px;
++  vertical-align: 1px;
++}
++.impact-badge.high { color: var(--short); }
++.impact-badge.medium { color: var(--rumor); }
++.impact-badge.low, .impact-badge.unknown { color: var(--muted); }
+ 
+ 
+ /* Replay Mode: one chronological lane, readable on narrow mobile screens. */
+@@ -368,3 +387,78 @@ a.replay-title:hover { text-decoration: underline; text-underline-offset: 3px; }
+ .reaction-table th, .reaction-table td { padding: 9px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+ .reaction-table th { color: var(--muted); font-weight: 500; }
+ .reaction-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; padding: 10px 0; font-size: 13px; }
++
++/* ---------- Form: field dengan tombol segmen ---------- */
++.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
++.field-label { font-size: 13px; color: var(--muted); }
++.segmented {
++  display: grid;
++  grid-template-columns: 1fr 1fr;
++  border: 1px solid var(--rule);
++  border-radius: 2px;
++  overflow: hidden;
++  background: var(--surface);
++}
++.segmented button {
++  width: 100%;
++  padding: 11px 8px;
++  border: 0;
++  border-radius: 0;
++  background: transparent;
++  color: var(--muted);
++  font: 600 15px var(--sans);
++}
++.segmented button + button { border-left: 1px solid var(--rule); }
++.segmented button[data-value="long"].active,
++.segmented button[data-value="up"].active { background: var(--long); color: var(--bg); }
++.segmented button[data-value="short"].active,
++.segmented button[data-value="down"].active { background: var(--short); color: var(--bg); }
++
++/* ---------- Impor CSV dan status sumber dilipat secara default ---------- */
++.history-import { margin: 8px 0 14px; border: 1px solid var(--rule); padding: 10px 12px; }
++.history-import > summary { cursor: pointer; font: 600 15px/1.3 var(--serif); }
++.history-import[open] > summary { margin-bottom: 8px; }
++.source-health-panel > summary {
++  cursor: pointer;
++  font: 600 15px/1.3 var(--serif);
++  padding: 2px 0 8px;
++  list-style: none;
++}
++.source-health-panel > summary::-webkit-details-marker { display: none; }
++.source-health-panel > summary::after { content: " ▾"; color: var(--muted); }
++.source-health-panel[open] > summary::after { content: " ▴"; }
++
++/* ---------- Navigasi tab bawah (mobile) ---------- */
++.mobile-tabs { display: none; }
++
++@media (max-width: 1099px) {
++  .wrap { padding-bottom: 88px; }
++  .layout > [data-tab] { display: none; }
++  .layout[data-active-tab="calendar"] > [data-tab="calendar"],
++  .layout[data-active-tab="journal"] > [data-tab="journal"],
++  .layout[data-active-tab="news"] > [data-tab="news"] { display: block; }
++
++  .mobile-tabs {
++    position: fixed;
++    left: 0;
++    right: 0;
++    bottom: 0;
++    z-index: 20;
++    display: grid;
++    grid-template-columns: repeat(3, minmax(0, 1fr));
++    background: var(--surface);
++    border-top: 1px solid var(--rule);
++    padding-bottom: env(safe-area-inset-bottom, 0px);
++  }
++  .mobile-tabs button {
++    width: 100%;
++    padding: 14px 6px;
++    border: 0;
++    border-top: 2px solid transparent;
++    border-radius: 0;
++    background: transparent;
++    color: var(--muted);
++    font: 600 14px var(--sans);
++  }
++  .mobile-tabs button.active { color: var(--ink); border-top-color: var(--ink); }
++}
+diff --git a/app/templates/index.html b/app/templates/index.html
+index 1129580..90cfb30 100644
+--- a/app/templates/index.html
++++ b/app/templates/index.html
+@@ -1,16 +1,14 @@
+ {% extends "base.html" %}
+ {% block content %}
+-<div class="reading-mode-control reading-mode-global">
+-  <label for="reading-mode">Cara baca berita</label>
+-  <select id="reading-mode">
+-    <option value="original">Judul &amp; sumber asli</option>
+-    <option value="normal">Ringkasan Bahasa Indonesia</option>
+-    <option value="simple">Bahasa super gampang · pemula</option>
+-  </select>
+-  <p class="muted">Pilih tingkat bahasa untuk berita di bawah. Pilihan tersimpan di browser.</p>
+-</div>
+-<div class="layout">
+-  <div class="pane">
++<div class="layout" data-active-tab="calendar">
++
++  <section class="calendar-panel" id="calendar-panel" data-tab="calendar">
++    <h2>Kalender ekonomi AS <span id="calendar-status" class="muted">memuat jadwal BLS</span></h2>
++    <p class="muted calendar-note">Jadwal resmi BLS. Waktu dalam WIB dan US Eastern. Forecast dan actual belum tersedia.</p>
++    <div class="calendar-list" id="calendar-list"></div>
++  </section>
++
++  <div class="pane" data-tab="journal">
+     <section>
+       <h1>Catat entry</h1>
+       <form method="post" action="/trades" class="form">
+@@ -29,21 +27,23 @@
+               <option value="BTCUSD">BTCUSD · Bitcoin</option>
+             </select>
+           </label>
+-          <label>Arah
+-            <select name="direction">
+-              <option value="long">Long</option>
+-              <option value="short">Short</option>
+-            </select>
+-          </label>
++          <div class="field">
++            <span class="field-label" id="direction-label">Arah</span>
++            <div class="segmented" role="group" aria-labelledby="direction-label">
++              <button type="button" data-value="long" class="active" aria-pressed="true">▲ Long</button>
++              <button type="button" data-value="short" aria-pressed="false">▼ Short</button>
++            </div>
++            <input type="hidden" name="direction" value="long">
++          </div>
+         </div>
+         <label>Harga entry
+-          <input name="entry_price" inputmode="decimal" placeholder="2650.50" required>
++          <input name="entry_price" inputmode="decimal" placeholder="contoh: 2650.50" required>
+         </label>
+         <label>Waktu entry ({{ tz }})
+           <input type="datetime-local" name="entry_time" value="{{ default_entry }}" required>
+         </label>
+         <div class="fields-3">
+-          <label>Lot <input name="lot" inputmode="decimal"></label>
++          <label>Lot <input name="lot" inputmode="decimal" placeholder="0.10"></label>
+           <label>SL <input name="sl" inputmode="decimal"></label>
+           <label>TP <input name="tp" inputmode="decimal"></label>
+         </div>
+@@ -58,16 +58,18 @@
+       <h2>Statistik reaksi news <span class="muted">· catatan historis manual</span></h2>
+       <p class="muted">Catat bias sebelum rilis, harga sebelum rilis, dan harga 15 menit sesudahnya. Win rate hanya mengukur apakah arah 15 menit sesuai bias yang dicatat, bukan profitabilitas trade. Jangan isi bias setelah melihat hasil.</p>
+       {% if macro_import_message %}<p class="notice">{{ macro_import_message }}</p>{% endif %}
+-      <div class="history-import">
+-        <h3>Impor bias historis</h3>
++
++      <details class="history-import">
++        <summary>Impor bias historis (CSV)</summary>
+         <p class="muted">Masukkan data event tahun-tahun sebelumnya dari CSV berbasis harga historis yang sudah diverifikasi. Bias <code>up</code>/<code>down</code> adalah arah yang dicatat; harga sesudah 15 menit dipakai untuk mengecek reaksinya.</p>
+         <p><a href="/macro-reactions/template.csv">Unduh template CSV</a></p>
+         <form method="post" action="/macro-reactions/import" enctype="multipart/form-data" class="form">
+           <label>File CSV historis <input type="file" name="file" accept=".csv,text/csv" required></label>
+           <button type="submit">Impor data historis</button>
+         </form>
+-      </div>
+-      <form method="post" action="/macro-reactions" class="form">
++      </details>
++
++      <form method="post" action="/macro-reactions" class="form reaction-form">
+         <div class="fields-2">
+           <label>Event
+             <select name="event_type" required>
+@@ -90,15 +92,21 @@
+           <input type="datetime-local" name="release_time" value="{{ default_entry }}" required>
+         </label>
+         <div class="fields-2">
+-          <label>Bias sebelum rilis
+-            <select name="expected_direction" required><option value="up">Naik</option><option value="down">Turun</option></select>
+-          </label>
+-          <label>Harga sebelum rilis <input name="price_before" inputmode="decimal" placeholder="2650.50" required></label>
++          <div class="field">
++            <span class="field-label" id="bias-label">Bias sebelum rilis</span>
++            <div class="segmented" role="group" aria-labelledby="bias-label">
++              <button type="button" data-value="up" class="active" aria-pressed="true">▲ Naik</button>
++              <button type="button" data-value="down" aria-pressed="false">▼ Turun</button>
++            </div>
++            <input type="hidden" name="expected_direction" value="up">
++          </div>
++          <label>Harga sebelum rilis <input name="price_before" inputmode="decimal" placeholder="contoh: 2650.50" required></label>
+         </div>
+-        <label>Harga 15 menit setelah rilis <input name="price_after_15m" inputmode="decimal" placeholder="2655.20" required></label>
++        <label>Harga 15 menit setelah rilis <input name="price_after_15m" inputmode="decimal" placeholder="contoh: 2655.20" required></label>
+         <label>Catatan / alasan bias <textarea name="note" rows="2"></textarea></label>
+         <button type="submit">Simpan reaksi event</button>
+       </form>
++
+       {% if reaction_stats %}
+       <h3 class="section">Hasil per event &amp; instrumen</h3>
+       <div class="table-scroll"><table class="reaction-table"><thead><tr><th>Event</th><th>Pair</th><th>Sampel</th><th>Sesuai bias</th></tr></thead><tbody>
+@@ -114,6 +122,7 @@
+       {% endfor %}</ul>
+       {% endif %}
+     </section>
++
+     <section class="section">
+       <h2>Trade tercatat</h2>
+       {% if trades %}
+@@ -134,7 +143,16 @@
+     </section>
+   </div>
+ 
+-  <aside class="pane wire-pane">
++  <aside class="pane wire-pane" data-tab="news">
++    <div class="reading-mode-control reading-mode-global">
++      <label for="reading-mode">Cara baca berita</label>
++      <select id="reading-mode">
++        <option value="original">Judul &amp; sumber asli</option>
++        <option value="normal">Ringkasan Bahasa Indonesia</option>
++        <option value="simple">Bahasa super gampang · pemula</option>
++      </select>
++      <p class="muted">Pilih tingkat bahasa untuk berita di bawah. Pilihan tersimpan di browser.</p>
++    </div>
+     <section class="priority-news-panel">
+       <h2>Berita berdampak tinggi <span class="muted">· watchlist makro</span></h2>
+       <p class="muted">Peringkat heuristik dari judul, skor dampak, dan sumber resmi. Instrumen terkait bukan jaminan arah atau korelasi statistik.</p>
+@@ -172,4 +190,10 @@
+     </div>
+   </aside>
+ </div>
++
++<nav class="mobile-tabs" aria-label="Navigasi utama">
++  <button type="button" data-tab-target="calendar">Kalender</button>
++  <button type="button" data-tab-target="journal">Jurnal</button>
++  <button type="button" data-tab-target="news">Berita</button>
++</nav>
+ {% endblock %}
+diff --git a/pytest.ini b/pytest.ini
+index c7b23ec..fa44eac 100644
+--- a/pytest.ini
++++ b/pytest.ini
+@@ -1,3 +1,3 @@
+ [pytest]
+ pythonpath = .
+-testpaths = tests
++testpaths = .
+-- 
+2.43.0
+
