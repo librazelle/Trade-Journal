@@ -1,4 +1,4 @@
-"""On-demand beginner-friendly news explanations through the OpenAI Responses API."""
+"""Beginner-friendly news explanations using an open-weight model via Hugging Face Inference Providers."""
 from __future__ import annotations
 
 import httpx
@@ -20,42 +20,51 @@ Pisahkan fakta dari kemungkinan. Jangan memberikan sinyal buy/sell atau menjanji
 
 
 async def explain_news_with_ai(title: str, source: str, summary: str, url: str | None) -> str:
-    if not settings.openai_api_key:
+    if not settings.huggingface_token:
         raise RuntimeError("AI_NOT_CONFIGURED")
     payload = {
         "model": settings.ai_model,
-        "store": False,
-        "max_output_tokens": 500,
-        "instructions": SYSTEM_PROMPT,
-        "input": (
-            f"Sumber: {source}\nJudul: {title}\n"
-            f"Ringkasan yang tersedia: {summary or '[Tidak ada ringkasan dari sumber]'}\n"
-            f"URL sumber: {url or '[Tidak tersedia]'}\n\n"
-            "Uraikan berita ini dengan bahasa sangat mudah dipahami orang awam. "
-            "Jangan mengklaim telah membaca isi artikel penuh jika yang tersedia hanya judul/ringkasan."
-        ),
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": (
+                    f"Sumber: {source}\\nJudul: {title}\\n"
+                    f"Ringkasan yang tersedia: {summary or '[Tidak ada ringkasan dari sumber]'}\\n"
+                    f"URL sumber: {url or '[Tidak tersedia]'}\\n\\n"
+                    "Uraikan berita ini dengan bahasa sangat mudah dipahami orang awam. "
+                    "Jangan mengklaim telah membaca isi artikel penuh jika yang tersedia hanya judul/ringkasan."
+                ),
+            },
+        ],
+        "temperature": 0.2,
+        "max_tokens": 500,
     }
     headers = {
-        "Authorization": f"Bearer {settings.openai_api_key}",
+        "Authorization": f"Bearer {settings.huggingface_token}",
         "Content-Type": "application/json",
     }
-    async with httpx.AsyncClient(timeout=35, follow_redirects=True) as client:
+    async with httpx.AsyncClient(timeout=45, follow_redirects=True) as client:
         response = await client.post(
-            "https://api.openai.com/v1/responses",
+            "https://router.huggingface.co/v1/chat/completions",
             headers=headers,
             json=payload,
         )
         response.raise_for_status()
         data = response.json()
 
-    parts = []
-    for item in data.get("output", []):
-        if item.get("type") != "message":
-            continue
-        for content in item.get("content", []):
-            if content.get("type") == "output_text" and content.get("text"):
-                parts.append(content["text"])
-    text = "\n".join(parts).strip()
+    choices = data.get("choices", [])
+    text = ""
+    if choices:
+        message = choices[0].get("message", {})
+        content = message.get("content", "")
+        if isinstance(content, str):
+            text = content.strip()
+        elif isinstance(content, list):
+            text = "\\n".join(
+                item.get("text", "") for item in content
+                if isinstance(item, dict) and item.get("type") == "text"
+            ).strip()
     if not text:
         raise ValueError("AI returned an empty explanation")
     return text
