@@ -10,6 +10,7 @@
     const readout = root.querySelector("#clock-readout");
     const buttons = [...root.querySelectorAll("[data-clock-view]")];
     const STORAGE_KEY = "tradeLensDrawdownInputs";
+    const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
     let view = "drawdown";
     let drawdown = { balance: "", equity: "" };
     try {
@@ -23,21 +24,73 @@
     const formatMoney = value => new Intl.NumberFormat("en-US", {
       style: "currency", currency: "USD", maximumFractionDigits: 2
     }).format(value);
-    const formatClock = (date, zone, withDate = false) => new Intl.DateTimeFormat("id-ID", {
-      timeZone: zone, hour: "2-digit", minute: "2-digit", second: "2-digit",
-      hourCycle: "h23", ...(withDate ? { weekday: "short", day: "2-digit", month: "short" } : {})
+    const formatClock = (date, zone, withSeconds = true) => new Intl.DateTimeFormat("id-ID", {
+      timeZone: zone, hour: "2-digit", minute: "2-digit",
+      ...(withSeconds ? { second: "2-digit" } : {}),
+      hourCycle: "h23"
     }).format(date);
-    const zoneParts = (date, zone) => {
-      const parts = new Intl.DateTimeFormat("en-US", {
-        timeZone: zone, hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+    const dateParts = (date, zone) => {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
       }).formatToParts(date);
-      return Object.fromEntries(parts.filter(part => part.type !== "literal").map(part => [part.type, Number(part.value)]));
+      return Object.fromEntries(parts.filter(part => part.type !== "literal")
+        .map(part => [part.type, Number(part.value)]));
+    };
+    const zonedDateTimeToDate = (parts, zone) => {
+      const desired = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour || 0, parts.minute || 0, parts.second || 0);
+      let guess = desired;
+      for (let i = 0; i < 3; i++) {
+        const actual = dateParts(new Date(guess), zone);
+        const represented = Date.UTC(actual.year, actual.month - 1, actual.day, actual.hour, actual.minute, actual.second);
+        guess += desired - represented;
+      }
+      return new Date(guess);
+    };
+    const pad = value => String(value).padStart(2, "0");
+    const durationText = seconds => {
+      const safe = Math.max(0, Math.floor(seconds));
+      const days = Math.floor(safe / 86400);
+      const hours = Math.floor((safe % 86400) / 3600);
+      const minutes = Math.floor((safe % 3600) / 60);
+      const secs = safe % 60;
+      return (days ? days + "h " : "") + pad(hours) + ":" + pad(minutes) + ":" + pad(secs);
     };
     const sessions = {
       asia: { label: "Sesi Asia", city: "Tokyo", zone: "Asia/Tokyo", open: 9, close: 18 },
       europe: { label: "Sesi Eropa", city: "London", zone: "Europe/London", open: 8, close: 17 },
       newyork: { label: "Sesi New York", city: "New York", zone: "America/New_York", open: 8, close: 17 }
     };
+
+    function sessionState(now, session) {
+      const parts = dateParts(now, session.zone);
+      const weekday = new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
+      const weekdayOpen = weekday >= 1 && weekday <= 5;
+      const isOpen = weekdayOpen && parts.hour >= session.open && parts.hour < session.close;
+      const target = { year: parts.year, month: parts.month, day: parts.day, hour: isOpen ? session.close : session.open, minute: 0, second: 0 };
+      if (!isOpen) {
+        // Find the next weekday session open; weekend days are skipped.
+        let found = false;
+        for (let offset = 0; offset <= 7; offset++) {
+          const calendar = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + offset));
+          const day = calendar.getUTCDay();
+          if (day === 0 || day === 6) continue;
+          const candidate = {
+            year: calendar.getUTCFullYear(), month: calendar.getUTCMonth() + 1,
+            day: calendar.getUTCDate(), hour: session.open, minute: 0, second: 0
+          };
+          const candidateDate = zonedDateTimeToDate(candidate, session.zone);
+          if (candidateDate.getTime() > now.getTime()) {
+            Object.assign(target, candidate);
+            found = true;
+            break;
+          }
+        }
+        if (!found) return { parts, isOpen, targetDate: now, countdown: "Jadwal berikutnya tidak tersedia" };
+      }
+      const targetDate = zonedDateTimeToDate(target, session.zone);
+      return { parts, isOpen, targetDate, countdown: (isOpen ? "Tutup dalam " : "Buka dalam ") + durationText((targetDate.getTime() - now.getTime()) / 1000) };
+    }
 
     function render() {
       buttons.forEach(button => {
@@ -77,26 +130,37 @@
       }
       const session = sessions[view];
       if (!session) return;
-      const parts = zoneParts(now, session.zone);
-      const isOpen = parts.hour >= session.open && parts.hour < session.close;
-      const minsToClose = (session.close - parts.hour - 1) * 60 + (59 - parts.minute);
-      const nextText = isOpen
-        ? "Tutup sekitar " + Math.max(0, Math.floor(minsToClose / 60)) + "j " + Math.max(0, minsToClose % 60) + "m lagi"
-        : "Di luar jam sesi";
+      const state = sessionState(now, session);
+      const sessionClock = formatClock(now, session.zone);
+      const localClock = formatClock(now, localZone);
+      const sessionDate = new Intl.DateTimeFormat("id-ID", {
+        timeZone: session.zone, weekday: "long", day: "2-digit", month: "short"
+      }).format(now);
       readout.innerHTML = `
         <div class="clock-label">${session.label} <span>· ${session.city}</span></div>
-        <div class="clock-main">${formatClock(now, session.zone)} <span>${session.zone}</span></div>
-        <div class="clock-meta">WIB ${formatClock(now, "Asia/Jakarta")} · Jam sesi ${String(session.open).padStart(2,"0")}:00–${String(session.close).padStart(2,"0")}:00 waktu lokal</div>
-        <div class="clock-status ${isOpen ? "is-open" : "is-closed"}"><i></i>${isOpen ? "SESI BUKA" : "SESI TUTUP"} <span>${nextText}</span></div>`;
+        <div class="clock-pair">
+          <div class="clock-time-card">
+            <span class="clock-time-label">Jam Aktual Sesi</span>
+            <strong>${sessionClock}</strong>
+            <small>${session.zone}</small>
+          </div>
+          <div class="clock-time-card local">
+            <span class="clock-time-label">Jam Lokal Pengguna</span>
+            <strong>${localClock}</strong>
+            <small>${escapeText(localZone)}</small>
+          </div>
+        </div>
+        <div class="clock-meta">Jadwal sesi: ${pad(session.open)}:00–${pad(session.close)}:00 waktu ${session.city} · ${sessionDate}</div>
+        <div class="clock-status ${state.isOpen ? "is-open" : "is-closed"}"><i></i>${state.isOpen ? "SESI SEDANG BUKA" : "SESI TUTUP"}</div>
+        <div class="session-countdown ${state.isOpen ? "is-open" : ""}" aria-live="polite">${state.countdown}</div>
+        <p class="clock-footnote">Jam mengikuti zona waktu resmi dan perubahan DST. Sesi ini adalah acuan waktu trading, bukan jam bursa tunggal.</p>`;
     }
     buttons.forEach(button => button.addEventListener("click", () => {
       view = button.dataset.clockView;
       render();
     }));
     render();
-    window.setInterval(() => {
-      if (view !== "drawdown") render();
-    }, 1000);
+    window.setInterval(render, 1000);
   }
 
   const emptyParagraph = (text) => {
