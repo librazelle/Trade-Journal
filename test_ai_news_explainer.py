@@ -9,16 +9,7 @@ class FakeResponse:
         return None
 
     def json(self):
-        return {
-            "output": [
-                {
-                    "type": "message",
-                    "content": [
-                        {"type": "output_text", "text": "INTINYA: contoh penjelasan."}
-                    ],
-                }
-            ]
-        }
+        return {"choices": [{"message": {"content": "INTINYA: contoh penjelasan."}}]}
 
 
 class FakeAsyncClient:
@@ -39,8 +30,8 @@ class FakeAsyncClient:
 
 
 def test_ai_explainer_sends_beginner_prompt_and_returns_text(monkeypatch):
-    monkeypatch.setattr(settings, "openai_api_key", "test-secret")
-    monkeypatch.setattr(settings, "ai_model", "gpt-6-luna")
+    monkeypatch.setattr(settings, "huggingface_token", "test-secret")
+    monkeypatch.setattr(settings, "ai_model", "Qwen/Qwen2.5-7B-Instruct")
     monkeypatch.setattr(service.httpx, "AsyncClient", FakeAsyncClient)
 
     result = asyncio.run(
@@ -54,19 +45,18 @@ def test_ai_explainer_sends_beginner_prompt_and_returns_text(monkeypatch):
 
     assert result == "INTINYA: contoh penjelasan."
     request = FakeAsyncClient.last_request
-    assert request["url"] == "https://api.openai.com/v1/responses"
+    assert request["url"] == "https://router.huggingface.co/v1/chat/completions"
     assert request["headers"]["Authorization"] == "Bearer test-secret"
-    assert request["json"]["model"] == "gpt-6-luna"
-    assert request["json"]["store"] is False
-    assert "Bahasa Indonesia" in request["json"]["instructions"]
-    assert "Tariff dispute escalates" in request["json"]["input"]
+    assert request["json"]["model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert "Bahasa Indonesia" in request["json"]["messages"][0]["content"]
+    assert "Tariff dispute escalates" in request["json"]["messages"][1]["content"]
 
 
-def test_ai_explainer_requires_api_key(monkeypatch):
-    monkeypatch.setattr(settings, "openai_api_key", "")
+def test_ai_explainer_requires_huggingface_token(monkeypatch):
+    monkeypatch.setattr(settings, "huggingface_token", "")
     try:
         asyncio.run(service.explain_news_with_ai("Headline", "Source", "", None))
     except RuntimeError as exc:
         assert str(exc) == "AI_NOT_CONFIGURED"
     else:
-        raise AssertionError("Expected missing API key to stop the request")
+        raise AssertionError("Expected missing token to stop the request")
