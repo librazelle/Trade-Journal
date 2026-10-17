@@ -71,26 +71,32 @@
   const filterBar = document.querySelector(".news-category-nav");
   const filterCount = document.getElementById("news-filter-count");
   let activeNewsFilter = "all";
-  const categoryFor = (article) => {
-    const text = (article.innerText || "").toLowerCase();
-    const tags = Array.from(article.querySelectorAll(".tags span")).map(el => el.textContent.toLowerCase()).join(" ");
-    const haystack = text + " " + tags;
-    if (/fomc|federal reserve|\bfed\b|powell|interest rate|rate decision|monetary policy/.test(haystack)) return "fed";
-    if (/inflation|consumer price|\bcpi\b|\bppi\b|\bpce\b|price index/.test(haystack)) return "inflation";
-    if (/nonfarm|payroll|unemployment|employment|job openings|labor market|labour market|wage/.test(haystack)) return "jobs";
-    if (/gdp|gross domestic|productivity|business activity|consumer spending|retail sales|economic growth/.test(haystack)) return "economy";
-    if (/geopolit|war |sanction|tariff|trade war|iran|israel|ukraine|russia|missile|conflict/.test(haystack)) return "geopolitics";
-    if (/oil|crude|opec|energy|natural gas|brent|wti/.test(haystack)) return "energy";
-    return "other";
+  // Artikel boleh masuk ke beberapa kategori sekaligus. Berita tentang tarif,
+  // misalnya, bisa relevan untuk geopolitik DAN ekonomi.
+  const categoriesFor = (article) => {
+    const title = article.querySelector("h3")?.innerText || "";
+    const summary = article.querySelector(".original-summary")?.innerText || "";
+    const tags = Array.from(article.querySelectorAll(".tags span"))
+      .map(el => el.textContent || "").join(" ");
+    const haystack = (title + " " + summary + " " + tags).toLowerCase();
+    const categories = new Set();
+    if (/fomc|federal reserve|\bfed\b|powell|interest rate|rate decision|monetary policy|central bank|policy rate/.test(haystack)) categories.add("fed");
+    if (/inflation|consumer price|\bcpi\b|\bppi\b|\bpce\b|price index|cost of living/.test(haystack)) categories.add("inflation");
+    if (/nonfarm|payroll|unemployment|employment|job openings|labor market|labour market|wage|jobless claims/.test(haystack)) categories.add("jobs");
+    if (/\bgdp\b|gross domestic|productivity|business activity|consumer spending|retail sales|economic growth|recession|economic outlook|manufacturing/.test(haystack)) categories.add("economy");
+    if (/geopolit|\bwar\b|sanction|tariff|trade war|iran|israel|ukraine|russia|missile|conflict|invasion|ceasefire|military|diplomatic|election|white house|china-us relations/.test(haystack)) categories.add("geopolitics");
+    if (/\boil\b|crude|opec|energy|natural gas|brent|wti|petroleum|fuel prices|electricity prices/.test(haystack)) categories.add("energy");
+    if (!categories.size) categories.add("other");
+    return categories;
   };
   const applyNewsFilter = () => {
     if (!feed) return;
     const articles = Array.from(feed.querySelectorAll(".news"));
     let visible = 0;
     articles.forEach(article => {
-      const category = categoryFor(article);
-      article.dataset.newsCategory = category;
-      const show = activeNewsFilter === "all" || category === activeNewsFilter;
+      const categories = categoriesFor(article);
+      article.dataset.newsCategories = Array.from(categories).join(" ");
+      const show = activeNewsFilter === "all" || categories.has(activeNewsFilter);
       article.hidden = !show;
       if (show) visible += 1;
     });

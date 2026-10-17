@@ -339,6 +339,10 @@ def source_health():
     labels = {
         "fed_rss": "Federal Reserve",
         "bls_rss": "U.S. Bureau of Labor Statistics",
+        "bbc_world_rss": "BBC News · World",
+        "bbc_business_rss": "BBC News · Business",
+        "guardian_world_rss": "The Guardian · World",
+        "guardian_business_rss": "The Guardian · Business",
     }
     return {
         "checked_at": fmt_utc(datetime.now(timezone.utc)),
