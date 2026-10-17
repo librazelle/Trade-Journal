@@ -349,12 +349,26 @@ async def explain_news_endpoint(news_id: int, request: Request):
     except httpx.TimeoutException:
         raise HTTPException(504, "AI terlalu lama merespons. Coba lagi.") from None
     except httpx.HTTPStatusError as exc:
+        # Log provider response details for diagnosis, but never log request headers or secrets.
+        provider_body = (exc.response.text or "")[:800].replace("\\n", " ")
+        import logging
+        logging.getLogger(__name__).warning(
+            "Hugging Face inference returned HTTP %s: %s",
+            exc.response.status_code,
+            provider_body,
+        )
         if exc.response.status_code == 429:
             raise HTTPException(429, "Batas gratis Hugging Face tercapai atau model sedang membatasi permintaan. Coba lagi nanti.") from None
         if exc.response.status_code in (401, 403):
             raise HTTPException(503, "Token Hugging Face tidak valid atau model tidak memiliki akses.") from None
         raise HTTPException(502, "Layanan AI sedang bermasalah.") from None
-    except (httpx.HTTPError, ValueError):
+    except (httpx.HTTPError, ValueError) as exc:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Hugging Face inference request failed (%s): %s",
+            type(exc).__name__,
+            str(exc)[:500],
+        )
         raise HTTPException(502, "Gagal mengambil penjelasan dari layanan AI.") from None
 
     created_at = fmt_utc(datetime.now(timezone.utc))
