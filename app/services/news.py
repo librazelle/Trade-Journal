@@ -8,14 +8,18 @@ from ..db import get_db
 from ..timeutil import fmt_utc, parse_utc
 from .tagging import impact_score, tag_text
 from .news_explain import explain_news
+from .news_relevance import is_market_relevant_news
 
 
 def save_items(items: Iterable[NewsItem], ingested_at: datetime | None = None) -> list[dict]:
-    """Simpan item baru dan lewati yang sudah ada. Mengembalikan hanya row yang benar-benar baru."""
+    """Simpan berita market-relevan saja; deduplikasi dilakukan oleh database."""
     ingested_at = ingested_at or datetime.now(timezone.utc)
     new_rows: list[dict] = []
     with get_db() as db:
         for it in items:
+            candidate = {"title": it.title, "summary": it.summary or "", "source": it.source}
+            if not is_market_relevant_news(candidate):
+                continue
             tags = tag_text(f"{it.title} {it.summary or ''}")
             cur = db.execute(
                 """INSERT OR IGNORE INTO news
