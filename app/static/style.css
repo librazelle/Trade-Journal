@@ -921,3 +921,22 @@ button:active { transform: translateY(1px); }
   .clock-time-card strong { font-size: 16px; }
   .clock-time-label { font-size: 9px; }
 }
+
+
+/* Free macro release expectation panel */
+.expectation-panel {
+  grid-column: 1 / -1;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-top: 2px solid #6f88a8;
+  background: rgba(111, 136, 168, 0.035);
+}
+.expectation-panel > p { margin: 0 0 12px; }
+.expectation-result { margin-top: 12px; overflow-wrap: anywhere; }
+.expectation-result:empty { display: none; }
+.expectation-result h3 { margin: 0 0 6px; }
+.expectation-result p { margin: 6px 0; }
+.expectation-result[data-bias="hawkish"] { border-left: 3px solid var(--short); padding-left: 10px; }
+.expectation-result[data-bias="dovish"] { border-left: 3px solid var(--long); padding-left: 10px; }
+.expectation-result[data-bias="unknown"] { border-left: 3px solid var(--rule); padding-left: 10px; }
+.expectation-panel button:disabled { opacity: .6; cursor: wait; }
