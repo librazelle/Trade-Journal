@@ -9,7 +9,9 @@
   </section>
 
   <div class="pane" data-tab="journal">
-    <section class="local-storage-panel" id="local-storage-panel" aria-labelledby="local-storage-title">
+    <details class="local-storage-details">
+      <summary>Penyimpanan &amp; backup lokal <span class="muted">· buka untuk migrasi atau backup</span></summary>
+      <section class="local-storage-panel" id="local-storage-panel" aria-labelledby="local-storage-title">
   <div class="local-storage-heading">
     <div><h2 id="local-storage-title">Penyimpanan lokal HP</h2>
       <p class="muted">Entry baru disimpan di database browser perangkat ini, bukan dikirim ke server. Backup berkala ke file JSON agar data tetap aman.</p></div>
@@ -25,6 +27,7 @@
   <div class="local-storage-summary"><strong id="local-trade-count">0 trade</strong><strong id="local-reaction-count">0 reaksi event</strong></div>
   <div id="local-records" class="local-records"><p class="empty">Belum ada catatan lokal.</p></div>
 </section>
+    </details>
     <section>
       <h1>Catat entry</h1>
       <form method="post" action="/trades" class="form">
