@@ -11,7 +11,7 @@
     const buttons = [...root.querySelectorAll("[data-clock-view]")];
     const STORAGE_KEY = "tradeLensDrawdownInputs";
     let view = "drawdown";
-    let drawdown = { balance: "6000", equity: "6000" };
+    let drawdown = { balance: "", equity: "" };
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
       if (saved && typeof saved === "object") drawdown = { ...drawdown, ...saved };
@@ -67,14 +67,10 @@
           <p class="clock-footnote">Hitungan sederhana dari balance acuan ke equity. Bukan data otomatis dari MetaTrader.</p>`;
         ["dd-balance", "dd-equity"].forEach(id => {
           const input = readout.querySelector("#" + id);
-          input.addEventListener("input", () => {
+          input.addEventListener("change", () => {
             drawdown[id === "dd-balance" ? "balance" : "equity"] = input.value;
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(drawdown)); } catch (_) {}
-            const cursor = input.selectionStart;
             render();
-            const replacement = readout.querySelector("#" + id);
-            replacement.focus();
-            try { replacement.setSelectionRange(cursor, cursor); } catch (_) {}
           });
         });
         return;
