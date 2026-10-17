@@ -115,6 +115,33 @@
       {% endfor %}
       </tbody></table></div>
       {% else %}<p class="empty">Belum ada sampel. Statistik akan muncul setelah reaksi event dicatat.</p>{% endif %}
+      <section class="event-lab-panel" aria-labelledby="event-lab-title">
+        <h3 id="event-lab-title">Historical Event Lab <span class="muted">· statistik perubahan harga</span></h3>
+        <p class="muted">Ringkasan perubahan harga 15 menit dari data yang dicatat atau diimpor. Statistik deskriptif, bukan prediksi.</p>
+        <div class="fields-2 event-lab-filters">
+          <label>Filter event
+            <select id="event-lab-event">
+              <option value="">Semua event</option><option>CPI</option><option>PCE</option>
+              <option>NFP</option><option>FOMC</option><option>GDP</option><option>PPI</option>
+            </select>
+          </label>
+          <label>Instrumen
+            <select id="event-lab-instrument">
+              <option value="">Semua instrumen</option><option>XAUUSD</option><option>NASDAQ100</option>
+              <option>DXY</option><option>US10Y</option><option>EURUSD</option><option>USDJPY</option>
+            </select>
+          </label>
+        </div>
+        <button type="button" id="event-lab-refresh">Muat statistik</button>
+        <p id="event-lab-status" class="muted" role="status">Menunggu permintaan statistik.</p>
+        <div class="table-scroll">
+          <table class="reaction-table"><thead><tr>
+            <th>Event</th><th>Instrumen</th><th>N</th><th>Median %</th><th>Rata-rata %</th><th>Naik / turun / datar</th><th>Sesuai bias</th>
+          </tr></thead><tbody id="event-lab-results"><tr><td colspan="7">Tekan “Muat statistik” untuk menghitung.</td></tr></tbody></table>
+        </div>
+        <ul id="event-lab-limitations" class="muted"></ul>
+      </section>
+
       {% if macro_reactions %}
       <h3 class="section">Riwayat reaksi terbaru</h3>
       <ul class="trades">{% for r in macro_reactions %}
