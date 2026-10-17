@@ -6,6 +6,46 @@
   const marketClock = document.getElementById("market-clock");
   if (marketClock) initMarketClock(marketClock);
 
+  // ---------- Free macro release expectation analysis ----------
+  const expectationForm = document.getElementById("news-expectation-form");
+  const expectationResult = document.getElementById("news-expectation-result");
+  if (expectationForm && expectationResult) {
+    expectationForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = expectationForm.querySelector('button[type="submit"]');
+      button.disabled = true;
+      expectationResult.textContent = "Menganalisis nilai yang dimasukkan…";
+      try {
+        const response = await fetch("/api/news-expectation", {
+          method: "POST",
+          body: new FormData(expectationForm),
+          headers: { "Accept": "application/json" },
+          cache: "no-store"
+        });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        const title = document.createElement("h3");
+        title.textContent = data.event_type ? data.event_type.toUpperCase().replaceAll("_", " ") : "EVENT BELUM DIKENALI";
+        const facts = document.createElement("p");
+        facts.textContent = "Actual: " + (data.actual ?? "—") + " · Forecast: " + (data.forecast ?? "tidak tersedia") + " · Previous: " + (data.previous ?? "—");
+        const bias = document.createElement("p");
+        const biasLabels = { hawkish: "Bias makro: HAWKISH", dovish: "Bias makro: DOVISH", mixed: "Bias makro: MIXED / sesuai forecast", unknown: "Bias makro: BELUM DAPAT DITENTUKAN" };
+        bias.textContent = biasLabels[data.macro_bias] || "Bias makro belum tersedia";
+        const explanation = document.createElement("p");
+        explanation.textContent = data.explanation || "";
+        const confirmation = document.createElement("p");
+        confirmation.className = "muted";
+        confirmation.textContent = "Konfirmasi harga: belum diperiksa. " + (data.source_note || "");
+        expectationResult.replaceChildren(title, facts, bias, explanation, confirmation);
+        expectationResult.dataset.bias = data.macro_bias || "unknown";
+      } catch (error) {
+        expectationResult.textContent = "Analisis gagal: " + (error.message || "kesalahan tidak diketahui");
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
   function initMarketClock(root) {
     const readout = root.querySelector("#clock-readout");
     const buttons = [...root.querySelectorAll("[data-clock-view]")];
