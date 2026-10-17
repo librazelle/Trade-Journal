@@ -19,6 +19,7 @@ from .services.context import build_context
 from .services.economic_context import build_economic_context
 from .services.news import news_view
 from .services.news_relevance import high_impact_news
+from .services.news_expectation import analyze_release
 from .services.econ_calendar import fetch_bls_calendar
 from .services.calendar_store import ensure_calendar_table, save_calendar_events, list_calendar_events
 from .timeutil import fmt_utc, to_local
@@ -467,6 +468,22 @@ def source_health():
             for item in source_health_snapshot()
         ],
     }
+
+
+@app.post("/api/news-expectation")
+def news_expectation(
+    event_name: str = Form(...),
+    actual: str = Form(""),
+    forecast: str = Form(""),
+    previous: str = Form(""),
+):
+    """Analyze user/source-provided release values without fabricating missing consensus."""
+    return analyze_release(
+        event_name,
+        actual=actual.strip() or None,
+        forecast=forecast.strip() or None,
+        previous=previous.strip() or None,
+    )
 
 
 @app.get("/api/calendar")
