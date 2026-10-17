@@ -84,6 +84,29 @@ def _impact(title: str) -> str:
     return "low"
 
 
+def _release_series_url(title: str) -> str | None:
+    """Return the official BLS page for this release family, not the generic schedule home."""
+    value = title.casefold()
+    routes = (
+        (("consumer price index",), "cpi"),
+        (("producer price index",), "ppi"),
+        (("employment situation",), "empsit"),
+        (("state employment and unemployment",), "laus"),
+        (("metropolitan area employment and unemployment",), "metro"),
+        (("job openings and labor turnover", "jolts"), "jolts"),
+        (("employment cost index",), "eci"),
+        (("real earnings",), "realer"),
+        (("usual weekly earnings",), "wkyeng"),
+        (("import and export price", "u.s. import and export price"), "ximpim"),
+        (("productivity and costs",), "prod2"),
+        (("quarterly data series on business employment dynamics", "business employment dynamics"), "bd"),
+        (("consumer expenditures",), "ce"),
+    )
+    for phrases, slug in routes:
+        if any(phrase in value for phrase in phrases):
+            return f"https://www.bls.gov/schedule/news_release/{slug}.htm"
+    return None
+
 def _absolute_url(href: str) -> str:
     if href.startswith(("https://", "http://")):
         return href
@@ -102,6 +125,9 @@ def _event(title: str, date_text: str, time_text: str, year: int, url: str) -> d
         return None
     scheduled_utc = datetime.combine(day, clock, tzinfo=ET).astimezone(UTC).isoformat().replace("+00:00", "Z")
     key = hashlib.sha256(f"{title.lower()}|{scheduled_utc}".encode()).hexdigest()[:24]
+    # Some BLS schedule layouts expose no per-release anchor. Never send users
+    # to the generic schedule home when a dedicated release-family page is known.
+    release_url = _release_series_url(title) or url
     return {
         "event_id": f"bls:{key}",
         "name": title,
@@ -109,7 +135,7 @@ def _event(title: str, date_text: str, time_text: str, year: int, url: str) -> d
         "scheduled_at_utc": scheduled_utc,
         "impact": _impact(title),
         "source": "U.S. Bureau of Labor Statistics",
-        "url": url,
+        "url": release_url,
         "forecast": None,
         "previous": None,
         "actual": None,
