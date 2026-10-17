@@ -29,3 +29,8 @@ android {
         jvmTarget = "17"
     }
 }
+
+dependencies {
+    // WindowInsetsCompat / ViewCompat untuk padding status bar dan keyboard.
+    implementation("androidx.core:core-ktx:1.13.1")
+}
