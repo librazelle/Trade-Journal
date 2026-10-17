@@ -542,3 +542,55 @@ button.secondary-button { background: transparent; border: 1px solid var(--rule)
 .local-record small { color: var(--muted); font-size: 12px; }
 .local-storage-panel code { overflow-wrap: anywhere; }
 @media(max-width:480px) { .local-storage-actions { grid-template-columns: 1fr; } }
+
+
+/* Briefing-first mobile UX: don't turn a market tool into an infinite newspaper. */
+.all-news-panel,
+.local-storage-details {
+  border: 1px solid var(--rule);
+  background: rgba(20, 28, 39, .45);
+  margin: 14px 0;
+}
+.all-news-panel > summary,
+.local-storage-details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 13px 14px;
+  font-weight: 600;
+  border-left: 3px solid var(--long);
+}
+.all-news-panel > summary::-webkit-details-marker,
+.local-storage-details > summary::-webkit-details-marker { display: none; }
+.all-news-panel > summary::after,
+.local-storage-details > summary::after {
+  content: "+";
+  float: right;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+}
+.all-news-panel[open] > summary::after,
+.local-storage-details[open] > summary::after { content: "−"; }
+.all-news-panel > h2,
+.all-news-panel > nav,
+.all-news-panel > p,
+.all-news-panel > .wire { margin-left: 12px; margin-right: 12px; }
+.all-news-panel > h2 { margin-top: 14px; }
+.all-news-panel .news-category-nav { margin-top: 8px; }
+.all-news-panel .wire { padding-bottom: 12px; }
+.local-storage-details .local-storage-panel { margin: 0; border: 0; border-top: 1px solid var(--rule); }
+.priority-news-panel { margin-bottom: 14px; }
+.priority-news-item:nth-of-type(n+4) { display: none; }
+.priority-news-panel:has(.priority-news-item:nth-of-type(4))::after {
+  content: "Menampilkan 3 berita prioritas teratas. Buka semua berita hanya jika perlu detail tambahan.";
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  padding-top: 8px;
+}
+@media (max-width: 600px) {
+  .wrap { padding: 12px; }
+  .priority-news-panel { padding: 11px; }
+  .priority-news-item { padding: 8px 0; }
+  .all-news-panel > summary, .local-storage-details > summary { padding: 12px 10px; }
+}
