@@ -9,6 +9,151 @@
     return p;
   };
 
+  // ---------- Database lokal perangkat + backup JSON ----------
+  // IndexedDB menyimpan entry baru pada origin browser ini. Jangan kirim data lokal ke server.
+  const localPanel = document.getElementById("local-storage-panel");
+  if (localPanel) initLocalStorage(localPanel);
+
+  function initLocalStorage(panel) {
+    const status = panel.querySelector("#local-storage-status");
+    const recordsNode = panel.querySelector("#local-records");
+    const tradeCount = panel.querySelector("#local-trade-count");
+    const reactionCount = panel.querySelector("#local-reaction-count");
+    const exportButton = panel.querySelector("#local-backup-export");
+    const importButton = panel.querySelector("#local-backup-import");
+    const importFile = panel.querySelector("#local-backup-file");
+    const DB_NAME = "trade-lens-local";
+    const DB_VERSION = 1;
+    let db;
+
+    const openDb = () => new Promise((resolve, reject) => {
+      if (!("indexedDB" in window)) return reject(new Error("Browser ini tidak mendukung IndexedDB."));
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = () => {
+        const database = request.result;
+        if (!database.objectStoreNames.contains("records")) {
+          const store = database.createObjectStore("records", { keyPath: "uid" });
+          store.createIndex("kind", "kind", { unique: false });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error("Database lokal gagal dibuka."));
+    });
+    const allRecords = () => new Promise((resolve, reject) => {
+      const request = db.transaction("records", "readonly").objectStore("records").getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+    const putRecord = record => new Promise((resolve, reject) => {
+      const tx = db.transaction("records", "readwrite");
+      tx.objectStore("records").put(record);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error("Gagal menyimpan catatan lokal."));
+      tx.onabort = () => reject(tx.error || new Error("Penyimpanan dibatalkan."));
+    });
+    const safeText = value => value === null || value === undefined || value === "" ? "—" : String(value);
+    const renderRecords = async () => {
+      const rows = await allRecords();
+      rows.sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
+      const trades = rows.filter(row => row.kind === "trade");
+      const reactions = rows.filter(row => row.kind === "reaction");
+      tradeCount.textContent = trades.length + " trade lokal";
+      reactionCount.textContent = reactions.length + " reaksi lokal";
+      recordsNode.replaceChildren();
+      if (!rows.length) {
+        recordsNode.appendChild(emptyParagraph("Belum ada catatan lokal. Trade dan reaksi baru akan tersimpan di perangkat ini."));
+        return;
+      }
+      rows.slice(0, 12).forEach(row => {
+        const article = document.createElement("article");
+        article.className = "local-record";
+        const title = document.createElement("strong");
+        const detail = document.createElement("p");
+        const when = document.createElement("small");
+        if (row.kind === "trade") {
+          title.textContent = (row.data.direction || "trade").toUpperCase() + " · " + safeText(row.data.instrument);
+          detail.textContent = "Entry " + safeText(row.data.entry_price) + " · SL " + safeText(row.data.sl) + " · TP " + safeText(row.data.tp) + " · Lot " + safeText(row.data.lot);
+        } else {
+          title.textContent = safeText(row.data.event_type) + " · " + safeText(row.data.instrument);
+          detail.textContent = "Bias " + safeText(row.data.expected_direction) + " · " + safeText(row.data.price_before) + " → " + safeText(row.data.price_after_15m);
+        }
+        when.textContent = safeText(row.data.entry_time || row.data.release_time || row.savedAt);
+        article.append(title, detail, when);
+        recordsNode.appendChild(article);
+      });
+      if (rows.length > 12) {
+        const note = document.createElement("p");
+        note.className = "muted";
+        note.textContent = "Menampilkan 12 dari " + rows.length + " catatan lokal. Semua catatan masuk ke backup.";
+        recordsNode.appendChild(note);
+      }
+    };
+    const makeUid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "tl-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+    const backup = async () => {
+      const rows = await allRecords();
+      const payload = { format: "trade-lens-local-backup", version: 1, exportedAt: new Date().toISOString(), records: rows };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "Trade-Lens-Backup-" + new Date().toISOString().slice(0, 10) + ".json";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      status.textContent = "Backup dibuat. Pindahkan file ke Documents/Trade-Lens.";
+    };
+    const restore = async file => {
+      const payload = JSON.parse(await file.text());
+      if (!payload || payload.format !== "trade-lens-local-backup" || payload.version !== 1 || !Array.isArray(payload.records)) {
+        throw new Error("Format backup tidak dikenal. Data tidak diubah.");
+      }
+      if (payload.records.length > 20000) throw new Error("Backup terlalu besar untuk dipulihkan sekaligus.");
+      let restored = 0;
+      for (const row of payload.records) {
+        if (!row || !["trade", "reaction"].includes(row.kind) || !row.data || typeof row.data !== "object") continue;
+        const uid = typeof row.uid === "string" ? row.uid : makeUid();
+        await putRecord({ uid, kind: row.kind, data: row.data, savedAt: row.savedAt || new Date().toISOString() });
+        restored++;
+      }
+      await renderRecords();
+      status.textContent = restored + " catatan dipulihkan. Catatan dengan ID sama diperbarui, bukan digandakan.";
+    };
+
+    document.querySelectorAll('form[action="/trades"], form[action="/macro-reactions"]').forEach(form => {
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const isTrade = form.getAttribute("action") === "/trades";
+        const data = Object.fromEntries(new FormData(form).entries());
+        try {
+          await putRecord({ uid: makeUid(), kind: isTrade ? "trade" : "reaction", data, savedAt: new Date().toISOString() });
+          await renderRecords();
+          status.textContent = "Tersimpan lokal di perangkat ini. Data tidak dikirim ke server.";
+          form.reset();
+        } catch (error) {
+          status.textContent = "Gagal menyimpan lokal: " + (error.message || "error database");
+        }
+      });
+    });
+    exportButton.addEventListener("click", () => backup().catch(error => { status.textContent = "Backup gagal: " + error.message; }));
+    importButton.addEventListener("click", () => importFile.click());
+    importFile.addEventListener("change", async () => {
+      if (!importFile.files || !importFile.files[0]) return;
+      try { await restore(importFile.files[0]); }
+      catch (error) { status.textContent = "Pemulihan gagal: " + (error.message || "format tidak valid"); }
+      finally { importFile.value = ""; }
+    });
+    openDb().then(async database => {
+      db = database;
+      await renderRecords();
+      status.textContent = "Database lokal aktif di browser/perangkat ini.";
+    }).catch(error => {
+      status.textContent = "Database lokal tidak tersedia: " + (error.message || "error");
+      exportButton.disabled = true;
+      importButton.disabled = true;
+    });
+  }
+
   // ---------- Tab bawah (mobile). Di desktop semua panel tampil sekaligus. ----------
   const layout = document.querySelector(".layout");
   const tabBar = document.querySelector(".mobile-tabs");
