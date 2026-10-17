@@ -1,4 +1,4 @@
-const CACHE_NAME = "trade-lens-shell-v2";
+const CACHE_NAME = "trade-lens-shell-v3";
 const APP_SHELL = [
   "/",
   "/static/style.css",
