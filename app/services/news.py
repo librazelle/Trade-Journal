@@ -42,6 +42,7 @@ def news_view(row) -> dict:
     """Ubah row atau dict berita menjadi bentuk siap-render: tags list, delay, dan url yang aman."""
     d = dict(row)
     d["tags_list"] = [t for t in (d.get("tags") or "").split(",") if t]
+    d["market_relevant"] = is_market_relevant_news(d)
     d.update(explain_news(d.get("title", ""), d.get("summary", ""), d.get("tags", "")))
     url = d.get("url") or ""
     d["url"] = url if url.startswith(("http://", "https://")) else None
