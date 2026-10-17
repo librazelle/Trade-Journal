@@ -324,8 +324,8 @@ async def explain_news_endpoint(news_id: int, request: Request):
         ).fetchone()
     if cached:
         return {"news_id": news_id, "explanation": cached["explanation"], "cached": True, "model": cached["model"]}
-    if not settings.openai_api_key:
-        raise HTTPException(503, "Fitur AI belum dikonfigurasi. Admin perlu mengisi OPENAI_API_KEY di environment server.")
+    if not settings.huggingface_token:
+        raise HTTPException(503, "Fitur AI belum dikonfigurasi. Admin perlu mengisi HF_TOKEN di environment server.")
 
     client_ip = request.client.host if request.client else "unknown"
     now = time.monotonic()
@@ -350,9 +350,9 @@ async def explain_news_endpoint(news_id: int, request: Request):
         raise HTTPException(504, "AI terlalu lama merespons. Coba lagi.") from None
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code == 429:
-            raise HTTPException(429, "Kuota atau batas permintaan API AI tercapai.") from None
+            raise HTTPException(429, "Batas gratis Hugging Face tercapai atau model sedang membatasi permintaan. Coba lagi nanti.") from None
         if exc.response.status_code in (401, 403):
-            raise HTTPException(503, "Kunci API AI tidak valid atau belum memiliki akses.") from None
+            raise HTTPException(503, "Token Hugging Face tidak valid atau model tidak memiliki akses.") from None
         raise HTTPException(502, "Layanan AI sedang bermasalah.") from None
     except (httpx.HTTPError, ValueError):
         raise HTTPException(502, "Gagal mengambil penjelasan dari layanan AI.") from None

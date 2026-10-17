@@ -68,7 +68,7 @@
   }
 
 
-  // ---------- Penjelasan berita dengan AI (hanya saat tombol ditekan) ----------
+  // ---------- AI Summarize dengan model open-weight (hanya saat tombol ditekan) ----------
   if (feed) {
     feed.addEventListener("click", async event => {
       const button = event.target.closest("[data-ai-explain]");
@@ -88,9 +88,9 @@
         return;
       }
       button.disabled = true;
-      button.textContent = "AI sedang menjelaskan...";
+      button.textContent = "AI sedang merangkum...";
       panel.hidden = false;
-      panel.textContent = "Menghubungi AI. Hasil akan disimpan agar permintaan yang sama tidak perlu ditagih berulang kali.";
+      panel.textContent = "Menghubungi model AI open-weight. Hasil disimpan agar berita yang sama tidak perlu diringkas ulang.";
       try {
         const response = await fetch("/api/news/" + encodeURIComponent(newsId) + "/explain", {
           method: "POST",
@@ -102,16 +102,16 @@
         panel.replaceChildren();
         const title = document.createElement("p");
         title.className = "ai-title";
-        title.textContent = "Penjelasan AI · bahasa pemula";
+        title.textContent = "AI Summarize · Qwen";
         const copy = document.createElement("p");
         copy.className = "ai-copy";
         copy.textContent = payload.explanation;
         panel.append(title, copy);
         panel.dataset.loaded = "true";
-        button.textContent = "Sembunyikan penjelasan AI";
+        button.textContent = "Sembunyikan ringkasan AI";
       } catch (error) {
-        panel.textContent = error.message || "Penjelasan AI gagal dimuat. Coba lagi nanti.";
-        button.textContent = "Coba jelaskan lagi";
+        panel.textContent = error.message || "AI Summarize gagal dimuat. Coba lagi nanti.";
+        button.textContent = "Coba ringkas lagi";
       } finally {
         button.disabled = false;
       }
