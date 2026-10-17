@@ -487,3 +487,12 @@ button.ai-explain-button:disabled { opacity: .6; cursor: wait; }
 .ai-explanation[hidden] { display: none; }
 .ai-explanation .ai-title { color: var(--ink); font-weight: 700; margin: 0 0 5px; }
 .ai-explanation .ai-copy { margin: 0; font-size: 14px; }
+
+
+/* Readable AI summary typography */
+.ai-markdown p { margin: 0 0 10px; }
+.ai-markdown .ai-section-heading { margin: 16px 0 6px; font: 700 0.98rem/1.4 var(--sans); color: var(--ink); }
+.ai-markdown .ai-section-heading:first-child { margin-top: 0; }
+.ai-markdown ul { margin: 4px 0 12px; padding-left: 22px; }
+.ai-markdown li { margin: 4px 0; }
+.ai-markdown strong { color: var(--ink); font-weight: 700; }
