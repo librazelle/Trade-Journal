@@ -9,6 +9,27 @@
     <div class="calendar-list" id="calendar-list"></div>
   </section>
 
+  <section class="expectation-panel" id="news-expectation-panel" data-tab="calendar">
+    <h2>News Expectation Engine <span class="muted">· gratis, tanpa forecast palsu</span></h2>
+    <p class="muted">Masukkan nilai dari rilis/sumber publik. Forecast boleh kosong; sistem tidak akan menebak konsensus.</p>
+    <form id="news-expectation-form" class="form">
+      <label>Event ekonomi
+        <input name="event_name" list="macro-event-options" placeholder="Contoh: CPI, Nonfarm Payrolls, FOMC" required>
+        <datalist id="macro-event-options">
+          <option value="CPI"><option value="Core CPI"><option value="PPI"><option value="PCE"><option value="Core PCE">
+          <option value="Nonfarm Payrolls"><option value="Unemployment Rate"><option value="Retail Sales"><option value="GDP"><option value="FOMC rate decision">
+        </datalist>
+      </label>
+      <div class="fields-3">
+        <label>Actual<input name="actual" inputmode="decimal" placeholder="Contoh: 3.1%"></label>
+        <label>Forecast<input name="forecast" inputmode="decimal" placeholder="Kosong jika tidak ada"></label>
+        <label>Previous<input name="previous" inputmode="decimal" placeholder="Contoh: 3.4%"></label>
+      </div>
+      <button type="submit">Analisis kejutan data</button>
+    </form>
+    <div id="news-expectation-result" class="expectation-result" role="status" aria-live="polite"></div>
+  </section>
+
   <div class="pane" data-tab="journal">
     <details class="local-storage-details">
       <summary>Penyimpanan &amp; backup lokal <span class="muted">· buka untuk migrasi atau backup</span></summary>
