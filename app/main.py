@@ -299,6 +299,76 @@ def delete_trade(trade_id: int):
 
 # ---------- realtime & kesehatan ----------
 
+
+# ---------- penjelasan berita AI ----------
+_ai_request_times: dict[str, list[float]] = {}
+
+
+@app.post("/api/news/{news_id}/explain")
+async def explain_news_endpoint(news_id: int, request: Request):
+    """Generate once per article, then serve the cached beginner-friendly explanation."""
+    import time
+    import httpx
+    from .services.ai_news_explainer import explain_news_with_ai
+
+    with get_db() as db:
+        row = db.execute(
+            "SELECT id, source, title, url, summary FROM news WHERE id = ?",
+            (news_id,),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(404, "Berita tidak ditemukan")
+        cached = db.execute(
+            "SELECT explanation, model FROM news_ai_summaries WHERE news_id = ?",
+            (news_id,),
+        ).fetchone()
+    if cached:
+        return {"news_id": news_id, "explanation": cached["explanation"], "cached": True, "model": cached["model"]}
+    if not settings.openai_api_key:
+        raise HTTPException(503, "Fitur AI belum dikonfigurasi. Admin perlu mengisi OPENAI_API_KEY di environment server.")
+
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+    recent = [stamp for stamp in _ai_request_times.get(client_ip, []) if now - stamp < 60]
+    if len(recent) >= 10:
+        raise HTTPException(429, "Batas permintaan penjelasan AI tercapai. Coba lagi sebentar.")
+    recent.append(now)
+    _ai_request_times[client_ip] = recent
+
+    try:
+        explanation = await explain_news_with_ai(
+            title=row["title"],
+            source=row["source"],
+            summary=row["summary"] or "",
+            url=row["url"],
+        )
+    except RuntimeError as exc:
+        if str(exc) == "AI_NOT_CONFIGURED":
+            raise HTTPException(503, "Fitur AI belum dikonfigurasi.") from None
+        raise HTTPException(502, "Layanan AI belum bisa memproses berita ini.") from None
+    except httpx.TimeoutException:
+        raise HTTPException(504, "AI terlalu lama merespons. Coba lagi.") from None
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 429:
+            raise HTTPException(429, "Kuota atau batas permintaan API AI tercapai.") from None
+        if exc.response.status_code in (401, 403):
+            raise HTTPException(503, "Kunci API AI tidak valid atau belum memiliki akses.") from None
+        raise HTTPException(502, "Layanan AI sedang bermasalah.") from None
+    except (httpx.HTTPError, ValueError):
+        raise HTTPException(502, "Gagal mengambil penjelasan dari layanan AI.") from None
+
+    created_at = fmt_utc(datetime.now(timezone.utc))
+    with get_db() as db:
+        db.execute(
+            """INSERT INTO news_ai_summaries (news_id, explanation, model, created_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(news_id) DO UPDATE SET
+                 explanation=excluded.explanation, model=excluded.model, created_at=excluded.created_at""",
+            (news_id, explanation, settings.ai_model, created_at),
+        )
+    return {"news_id": news_id, "explanation": explanation, "cached": False, "model": settings.ai_model}
+
+
 @app.get("/stream/news")
 async def stream_news(request: Request):
     queue = live.subscribe()
