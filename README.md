@@ -11,20 +11,13 @@ Jurnal trading yang digabung dengan berita ekonomi AS secara realtime. Versi awa
 - Label status berita: resmi, dilaporkan, rumor.
 - Database SQLite satu file, tanpa setup tambahan.
 
-## Belum ada (roadmap)
-
-- Connector BLS (CPI, PPI, NFP), FRED, EIA, GDELT, dan kalender ekonomi.
-- Harga live XAUUSD dan perhitungan PnL.
-- Login dan multi-user.
-- Mode review: replay berita dan harga.
-
 ## Menjalankan
 
 Butuh Python 3.11 atau lebih baru.
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate        # Windows: .venv\\Scripts\\activate
 pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 ```
@@ -48,14 +41,14 @@ python -m pytest
 | `TL_LOOKBACK_HOURS` | `5` | Berapa jam berita sebelum entry yang diambil |
 | `TL_ENABLE_WORKER` | `1` | Set `0` untuk mematikan polling connector |
 | `TL_USER_AGENT` | `trade-lens/0.1 ...` | User-Agent saat mengambil data. Isi dengan kontak kamu. |
-| `HF_TOKEN` | kosong | Token Hugging Face dengan izin Inference Providers. Simpan hanya di environment server. |
-| `TL_AI_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | Model open-weight yang digunakan melalui Hugging Face Inference Providers. |
+| `GEMINI_API_KEY` | kosong | API key Gemini. Simpan hanya di environment server. |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Model Gemini yang digunakan untuk penjelasan berita; ketersediaan dan kuota mengikuti akun Google AI Studio. |
 
 ## AI Summarize
 
-Tombol **AI Summarize · Qwen** mengirim judul dan ringkasan feed ke model open-weight Qwen melalui Hugging Face Inference Providers hanya saat ditekan. Hasil disimpan per artikel agar permintaan yang sama tidak diulang. Kode aplikasi tidak lagi memerlukan OpenAI API key.
+Tombol **AI Summarize** mengirim judul dan ringkasan feed ke Gemini API hanya saat ditekan. Hasil disimpan per artikel agar permintaan yang sama tidak diulang. API key hanya digunakan di backend, tidak dikirim ke browser.
 
-Untuk mengaktifkan fitur, buat token di Hugging Face dengan izin Inference Providers, lalu buka Render → service Trade-Lens → **Environment**, tambahkan `HF_TOKEN`, dan atur opsional `TL_AI_MODEL` jika ingin memilih model lain yang didukung akun/provider. Simpan token hanya di environment server, jangan di GitHub atau frontend, lalu redeploy. Akses gratis Hugging Face memiliki batas/kredit yang dapat berubah; ini bukan jaminan pemakaian tanpa batas.
+Untuk mengaktifkan fitur, buat API key di [Google AI Studio](https://aistudio.google.com/apikey), lalu buka Render → service Trade-Journal → **Environment**, tambahkan `GEMINI_API_KEY`, dan opsional atur `GEMINI_MODEL` ke model yang tersedia untuk akun. Simpan key hanya di environment server, jangan di GitHub atau frontend, lalu redeploy. Free tier memiliki batas penggunaan dan ketersediaan model dapat berubah; gratis bukan berarti tanpa batas. Lihat [dokumentasi model](https://ai.google.dev/gemini-api/docs/models) dan [pricing](https://ai.google.dev/gemini-api/docs/pricing).
 
 Penjelasan menggunakan judul/ringkasan yang tersedia, bukan jaminan bahwa artikel penuh telah dibaca. Dampak pasar disampaikan sebagai kemungkinan, bukan sinyal buy/sell.
 
