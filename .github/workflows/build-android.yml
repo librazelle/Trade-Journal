@@ -7,6 +7,11 @@ on:
       - "android-app/**"
       - ".github/workflows/build-android.yml"
     branches: ["main"]
+  pull_request:
+    paths:
+      - "android-app/**"
+      - ".github/workflows/build-android.yml"
+    branches: ["main"]
 
 permissions:
   contents: read
