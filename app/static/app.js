@@ -593,84 +593,96 @@
 
   function initCalendar(panel) {
     const statusLine = panel.querySelector("#calendar-status");
+    const nextNode = panel.querySelector("#calendar-next");
     const list = panel.querySelector("#calendar-list");
-    const pad = (n) => String(n).padStart(2, "0");
+    const pad = n => String(n).padStart(2, "0");
     const formatTime = (date, zone) => new Intl.DateTimeFormat("id-ID", {
       timeZone: zone, day: "2-digit", month: "short",
       hour: "2-digit", minute: "2-digit", hour12: false
     }).format(date);
 
-    // Jarak jauh cukup hari dan jam. Hanya di bawah satu jam countdown memakai mm:ss.
-    const countdownText = (remaining) => {
-      if (remaining <= 0) return { text: "Rilis sekarang", soon: true };
-      if (remaining < 3600) {
-        return { text: "Rilis dalam " + pad(Math.floor(remaining / 60)) + ":" + pad(remaining % 60), soon: true };
-      }
+    const countdownText = remaining => {
+      if (remaining <= 0) return { text: "Waktu rilis terlewati", soon: true };
       const days = Math.floor(remaining / 86400);
       const hours = Math.floor((remaining % 86400) / 3600);
       const minutes = Math.floor((remaining % 3600) / 60);
-      if (days === 0) return { text: "Rilis dalam " + hours + " jam " + minutes + " menit", soon: false };
-      return { text: "Rilis dalam " + days + " hari " + hours + " jam", soon: false };
+      if (remaining < 3600) return { text: "Dalam " + pad(Math.floor(remaining / 60)) + " menit", soon: true };
+      if (days === 0) return { text: "Dalam " + hours + " jam " + minutes + " menit", soon: false };
+      return { text: "Dalam " + days + " hari " + hours + " jam", soon: false };
     };
 
     let upcoming = [];
+    const createEventCard = (event, featured = false) => {
+      const impact = ["high", "medium", "low"].includes(event.impact) ? event.impact : "unknown";
+      const article = document.createElement("article");
+      article.className = "calendar-event " + impact + (featured ? " featured" : "");
+      const title = document.createElement("a");
+      title.className = "calendar-title";
+      title.textContent = event.name || "Rilis ekonomi";
+      title.href = event.url || event.source_url || "https://www.bls.gov/schedule/";
+      title.target = "_blank";
+      title.rel = "noopener noreferrer";
+
+      const date = new Date(event.scheduled_at_utc);
+      const meta = document.createElement("div");
+      meta.className = "calendar-meta";
+      meta.textContent = "WIB " + formatTime(date, "Asia/Jakarta") + " · ET " + formatTime(date, "America/New_York") + " · ";
+      const badge = document.createElement("span");
+      badge.className = "impact-badge " + impact;
+      badge.textContent = impact === "unknown" ? "DAMPAK ?" : impact.toUpperCase();
+      meta.appendChild(badge);
+      const countdown = document.createElement("div");
+      countdown.className = "calendar-countdown";
+      countdown.dataset.scheduledAt = event.scheduled_at_utc;
+      article.append(title, meta, countdown);
+      return article;
+    };
 
     const updateCountdowns = () => {
       const now = Date.now();
-      list.querySelectorAll(".calendar-countdown").forEach(node => {
+      panel.querySelectorAll(".calendar-countdown").forEach(node => {
         const target = Date.parse(node.dataset.scheduledAt);
         if (!Number.isFinite(target)) {
           node.textContent = "Waktu rilis tidak valid";
           node.classList.remove("soon");
           return;
         }
-        const { text, soon } = countdownText(Math.max(0, Math.floor((target - now) / 1000)));
-        if (node.textContent !== text) node.textContent = text;
-        node.classList.toggle("soon", soon);
+        const remaining = Math.floor((target - now) / 1000);
+        const result = countdownText(remaining);
+        if (node.textContent !== result.text) node.textContent = result.text;
+        node.classList.toggle("soon", result.soon);
       });
     };
 
     const render = () => {
-      const now = Date.now();
-      upcoming = upcoming.filter(event => Date.parse(event.scheduled_at_utc) >= now);
+      upcoming = upcoming.filter(event => Date.parse(event.scheduled_at_utc) >= Date.now())
+        .sort((a, b) => Date.parse(a.scheduled_at_utc) - Date.parse(b.scheduled_at_utc));
+      nextNode.replaceChildren();
       list.replaceChildren();
       if (!upcoming.length) {
-        list.appendChild(emptyParagraph("Tidak ada jadwal BLS mendatang pada data yang tersedia."));
+        nextNode.appendChild(emptyParagraph("Belum ada event mendatang di kalender yang tersedia."));
         return;
       }
-      upcoming.slice(0, 8).forEach(event => {
-        const impact = ["high", "medium", "low"].includes(event.impact) ? event.impact : "unknown";
-        const article = document.createElement("article");
-        article.className = "calendar-event " + impact;
-
-        const title = document.createElement("a");
-        title.className = "calendar-title";
-        title.textContent = event.name || "Rilis ekonomi";
-        title.href = event.url || event.source_url || "https://www.bls.gov/schedule/";
-        title.target = "_blank";
-        title.rel = "noopener noreferrer";
-
-        const date = new Date(event.scheduled_at_utc);
-        const meta = document.createElement("div");
-        meta.className = "calendar-meta";
-        meta.textContent = "WIB " + formatTime(date, "Asia/Jakarta") + " · ET " + formatTime(date, "America/New_York") + " · ";
-        const badge = document.createElement("span");
-        badge.className = "impact-badge " + impact;
-        badge.textContent = impact === "unknown" ? "DAMPAK ?" : impact.toUpperCase();
-        meta.appendChild(badge);
-
-        const countdown = document.createElement("div");
-        countdown.className = "calendar-countdown";
-        countdown.dataset.scheduledAt = event.scheduled_at_utc;
-
-        article.append(title, meta, countdown);
-        list.appendChild(article);
-      });
+      const nextEvent = upcoming[0];
+      const kicker = document.createElement("div");
+      kicker.className = "calendar-next-kicker";
+      kicker.textContent = "EVENT BERIKUTNYA";
+      nextNode.append(kicker, createEventCard(nextEvent, true));
+      const remaining = upcoming.slice(1, 7);
+      if (remaining.length) {
+        const label = document.createElement("div");
+        label.className = "calendar-upcoming-label";
+        label.textContent = "SELANJUTNYA";
+        list.appendChild(label);
+        remaining.forEach(event => list.appendChild(createEventCard(event)));
+      } else {
+        list.appendChild(emptyParagraph("Tidak ada event lain yang tersedia."));
+      }
       updateCountdowns();
     };
 
-    list.replaceChildren(emptyParagraph("Mengambil jadwal resmi..."));
-    fetch("/api/calendar")
+    nextNode.replaceChildren(emptyParagraph("Mengambil jadwal resmi..."));
+    fetch("/api/calendar", { cache: "no-store" })
       .then(response => {
         if (!response.ok) throw new Error("HTTP " + response.status);
         return response.json();
@@ -679,12 +691,13 @@
         upcoming = (payload.events || []).filter(event => event.scheduled_at_utc);
         statusLine.textContent = payload.stale ? "cache lama" : "sumber resmi";
         render();
-        window.setInterval(updateCountdowns, 1000);
+        window.setInterval(updateCountdowns, 30000);
         window.setInterval(render, 60000);
       })
       .catch(() => {
         statusLine.textContent = "tidak tersedia";
-        list.replaceChildren(emptyParagraph("Jadwal BLS gagal dimuat. Feed berita tetap berjalan."));
+        nextNode.replaceChildren(emptyParagraph("Jadwal BLS gagal dimuat."));
+        list.replaceChildren();
       });
   }
 
