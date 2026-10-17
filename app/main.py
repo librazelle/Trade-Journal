@@ -324,8 +324,8 @@ async def explain_news_endpoint(news_id: int, request: Request):
         ).fetchone()
     if cached:
         return {"news_id": news_id, "explanation": cached["explanation"], "cached": True, "model": cached["model"]}
-    if not settings.huggingface_token:
-        raise HTTPException(503, "Fitur AI belum dikonfigurasi. Admin perlu mengisi HF_TOKEN di environment server.")
+    if not settings.gemini_api_key:
+        raise HTTPException(503, "Fitur AI belum dikonfigurasi. Admin perlu mengisi GEMINI_API_KEY di environment server.")
 
     client_ip = request.client.host if request.client else "unknown"
     now = time.monotonic()
@@ -353,19 +353,19 @@ async def explain_news_endpoint(news_id: int, request: Request):
         provider_body = (exc.response.text or "")[:800].replace("\\n", " ")
         import logging
         logging.getLogger(__name__).warning(
-            "Hugging Face inference returned HTTP %s: %s",
+            "Gemini API returned HTTP %s: %s",
             exc.response.status_code,
             provider_body,
         )
         if exc.response.status_code == 429:
-            raise HTTPException(429, "Batas gratis Hugging Face tercapai atau model sedang membatasi permintaan. Coba lagi nanti.") from None
+            raise HTTPException(429, "Kuota Gemini habis atau permintaan sedang dibatasi. Coba lagi nanti.") from None
         if exc.response.status_code in (401, 403):
-            raise HTTPException(503, "Token Hugging Face tidak valid atau model tidak memiliki akses.") from None
+            raise HTTPException(503, "API key Gemini tidak valid atau model tidak tersedia untuk akun ini.") from None
         raise HTTPException(502, "Layanan AI sedang bermasalah.") from None
     except (httpx.HTTPError, ValueError) as exc:
         import logging
         logging.getLogger(__name__).warning(
-            "Hugging Face inference request failed (%s): %s",
+            "Gemini API request failed (%s): %s",
             type(exc).__name__,
             str(exc)[:500],
         )

@@ -9,7 +9,7 @@ class FakeResponse:
         return None
 
     def json(self):
-        return {"choices": [{"message": {"content": "INTINYA: contoh penjelasan."}}]}
+        return {"candidates": [{"content": {"parts": [{"text": "INTINYA: contoh penjelasan."}]}}]}
 
 
 class FakeAsyncClient:
@@ -30,8 +30,8 @@ class FakeAsyncClient:
 
 
 def test_ai_explainer_sends_beginner_prompt_and_returns_text(monkeypatch):
-    monkeypatch.setattr(settings, "huggingface_token", "test-secret")
-    monkeypatch.setattr(settings, "ai_model", "Qwen/Qwen2.5-7B-Instruct")
+    monkeypatch.setattr(settings, "gemini_api_key", "test-secret")
+    monkeypatch.setattr(settings, "gemini_model", "gemini-3.5-flash-lite")
     monkeypatch.setattr(service.httpx, "AsyncClient", FakeAsyncClient)
 
     result = asyncio.run(
@@ -45,18 +45,17 @@ def test_ai_explainer_sends_beginner_prompt_and_returns_text(monkeypatch):
 
     assert result == "INTINYA: contoh penjelasan."
     request = FakeAsyncClient.last_request
-    assert request["url"] == "https://router.huggingface.co/v1/chat/completions"
-    assert request["headers"]["Authorization"] == "Bearer test-secret"
-    assert request["json"]["model"] == "Qwen/Qwen2.5-7B-Instruct"
-    assert "Bahasa Indonesia" in request["json"]["messages"][0]["content"]
-    assert "Tariff dispute escalates" in request["json"]["messages"][1]["content"]
+    assert request["url"].endswith("/models/gemini-3.5-flash-lite:generateContent")
+    assert request["headers"]["x-goog-api-key"] == "test-secret"
+    assert "Bahasa Indonesia" in request["json"]["systemInstruction"]["parts"][0]["text"]
+    assert "Tariff dispute escalates" in request["json"]["contents"][0]["parts"][0]["text"]
 
 
-def test_ai_explainer_requires_huggingface_token(monkeypatch):
-    monkeypatch.setattr(settings, "huggingface_token", "")
+def test_ai_explainer_requires_gemini_api_key(monkeypatch):
+    monkeypatch.setattr(settings, "gemini_api_key", "")
     try:
         asyncio.run(service.explain_news_with_ai("Headline", "Source", "", None))
     except RuntimeError as exc:
         assert str(exc) == "AI_NOT_CONFIGURED"
     else:
-        raise AssertionError("Expected missing token to stop the request")
+        raise AssertionError("Expected missing API key to stop the request")

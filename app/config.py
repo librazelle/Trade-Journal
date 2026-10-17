@@ -13,8 +13,11 @@ class Settings:
         "TL_USER_AGENT",
         "trade-lens/0.1 (open source; ganti dengan kontak kamu)",
     )
-    huggingface_token: str = os.getenv("HF_TOKEN", "").strip()
-    ai_model: str = os.getenv("TL_AI_MODEL", "Qwen/Qwen2.5-7B-Instruct").strip() or "Qwen/Qwen2.5-7B-Instruct"
+    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "").strip()
+    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip() or "gemini-3.5-flash-lite"
+    # Legacy names remain as aliases because the existing route reads them.
+    huggingface_token: str = os.getenv("GEMINI_API_KEY", "").strip()
+    ai_model: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip() or "gemini-3.5-flash-lite"
 
 
 settings = Settings()
