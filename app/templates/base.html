@@ -16,7 +16,44 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/">trade-lens</a>
-    <nav aria-label="Navigasi utama"><a href="/research">External Research</a></nav>
+    <nav class="toolbar" aria-label="Toolbar utama">
+      <details class="toolbar-menu">
+        <summary>External Research</summary>
+        <div class="toolbar-popover research-popover">
+          <a href="https://www.bls.gov/news.release/" target="_blank" rel="noopener noreferrer">BLS · Employment &amp; CPI</a>
+          <a href="https://www.federalreserve.gov/newsevents.htm" target="_blank" rel="noopener noreferrer">Federal Reserve · FOMC</a>
+          <a href="https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html" target="_blank" rel="noopener noreferrer">CME FedWatch · Rate odds</a>
+          <a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener noreferrer">FRED · Macro data</a>
+          <a href="https://www.investing.com/economic-calendar/" target="_blank" rel="noopener noreferrer">Investing.com · Economic calendar</a>
+        </div>
+      </details>
+      <details class="toolbar-menu time-menu" id="time-info-menu">
+        <summary>Info Waktu <span class="toolbar-live-dot" aria-hidden="true"></span></summary>
+        <div class="toolbar-popover time-popover" aria-label="Jam sesi trading">
+          <div class="clock-row drawdown-row">
+            <span class="clock-label">Drawdown reset</span>
+            <strong id="drawdown-clock">03:00 WIB</strong>
+            <small id="drawdown-countdown">Reset harian · WIB</small>
+          </div>
+          <div class="clock-row">
+            <span class="clock-label">Asia · Tokyo</span>
+            <strong data-clock-zone="Asia/Tokyo">--:--:--</strong>
+            <small>Asia/Tokyo</small>
+          </div>
+          <div class="clock-row">
+            <span class="clock-label">Eropa · London</span>
+            <strong data-clock-zone="Europe/London">--:--:--</strong>
+            <small>Europe/London</small>
+          </div>
+          <div class="clock-row">
+            <span class="clock-label">New York</span>
+            <strong data-clock-zone="America/New_York">--:--:--</strong>
+            <small>America/New_York</small>
+          </div>
+          <p class="clock-footnote">Jam lokal live. Reset drawdown ditampilkan sebagai patokan 03:00 WIB.</p>
+        </div>
+      </details>
+    </nav>
     <span class="tz">Zona waktu {{ tz|default('') }}</span>
   </header>
   <main class="wrap">
