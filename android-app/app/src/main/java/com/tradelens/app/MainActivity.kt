@@ -1,6 +1,7 @@
 package com.tradelens.app
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.View
@@ -13,10 +14,8 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
 
     private lateinit var webView: WebView
     private lateinit var progressBar: ProgressBar
@@ -78,12 +77,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (webView.canGoBack()) webView.goBack() else finish()
-            }
-        })
-
         if (savedInstanceState == null) loadApp()
         else webView.restoreState(savedInstanceState)
     }
@@ -94,14 +87,22 @@ class MainActivity : AppCompatActivity() {
         webView.loadUrl(startUrl)
     }
 
+    @Deprecated("Deprecated in Android API 33; retained for compatibility with minSdk 23")
+    override fun onBackPressed() {
+        if (this::webView.isInitialized && webView.canGoBack()) webView.goBack()
+        else super.onBackPressed()
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
-        webView.saveState(outState)
+        if (this::webView.isInitialized) webView.saveState(outState)
         super.onSaveInstanceState(outState)
     }
 
     override fun onDestroy() {
-        webView.stopLoading()
-        webView.destroy()
+        if (this::webView.isInitialized) {
+            webView.stopLoading()
+            webView.destroy()
+        }
         super.onDestroy()
     }
 }
