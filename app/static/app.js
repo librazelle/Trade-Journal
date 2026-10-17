@@ -2,6 +2,107 @@
   const feed = document.getElementById("live-feed");
   const liveStatus = document.getElementById("live-status");
 
+  // ---------- Toolbar: market clocks + local drawdown calculator ----------
+  const marketClock = document.getElementById("market-clock");
+  if (marketClock) initMarketClock(marketClock);
+
+  function initMarketClock(root) {
+    const readout = root.querySelector("#clock-readout");
+    const buttons = [...root.querySelectorAll("[data-clock-view]")];
+    const STORAGE_KEY = "tradeLensDrawdownInputs";
+    let view = "drawdown";
+    let drawdown = { balance: "6000", equity: "6000" };
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      if (saved && typeof saved === "object") drawdown = { ...drawdown, ...saved };
+    } catch (_) {}
+
+    const escapeText = value => String(value).replace(/[&<>"']/g, char => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[char]);
+    const formatMoney = value => new Intl.NumberFormat("en-US", {
+      style: "currency", currency: "USD", maximumFractionDigits: 2
+    }).format(value);
+    const formatClock = (date, zone, withDate = false) => new Intl.DateTimeFormat("id-ID", {
+      timeZone: zone, hour: "2-digit", minute: "2-digit", second: "2-digit",
+      hourCycle: "h23", ...(withDate ? { weekday: "short", day: "2-digit", month: "short" } : {})
+    }).format(date);
+    const zoneParts = (date, zone) => {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: zone, hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+      }).formatToParts(date);
+      return Object.fromEntries(parts.filter(part => part.type !== "literal").map(part => [part.type, Number(part.value)]));
+    };
+    const sessions = {
+      asia: { label: "Sesi Asia", city: "Tokyo", zone: "Asia/Tokyo", open: 9, close: 18 },
+      europe: { label: "Sesi Eropa", city: "London", zone: "Europe/London", open: 8, close: 17 },
+      newyork: { label: "Sesi New York", city: "New York", zone: "America/New_York", open: 8, close: 17 }
+    };
+
+    function render() {
+      buttons.forEach(button => {
+        const active = button.dataset.clockView === view;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+      const now = new Date();
+      if (view === "drawdown") {
+        const balance = Number(drawdown.balance);
+        const equity = Number(drawdown.equity);
+        const valid = drawdown.balance !== "" && drawdown.equity !== "" &&
+          Number.isFinite(balance) && Number.isFinite(equity) && balance > 0;
+        const dd = valid ? Math.max(0, balance - equity) : 0;
+        const pct = valid ? dd / balance * 100 : 0;
+        const above = valid && equity > balance;
+        readout.innerHTML = `
+          <div class="clock-label">Drawdown tracker <span>· lokal di perangkat</span></div>
+          <div class="drawdown-fields">
+            <label>Balance acuan (USD)<input id="dd-balance" inputmode="decimal" type="number" min="0" step="any" value="${escapeText(drawdown.balance)}"></label>
+            <label>Equity sekarang (USD)<input id="dd-equity" inputmode="decimal" type="number" min="0" step="any" value="${escapeText(drawdown.equity)}"></label>
+          </div>
+          <div class="clock-result">
+            <strong>${valid ? (above ? "+" + formatMoney(equity - balance) : "-" + formatMoney(dd)) : "Isi angka valid"}</strong>
+            <span>${valid ? (above ? "Di atas balance acuan" : "Drawdown " + pct.toFixed(2) + "%") : "Balance acuan harus lebih dari 0"}</span>
+          </div>
+          <p class="clock-footnote">Hitungan sederhana dari balance acuan ke equity. Bukan data otomatis dari MetaTrader.</p>`;
+        ["dd-balance", "dd-equity"].forEach(id => {
+          const input = readout.querySelector("#" + id);
+          input.addEventListener("input", () => {
+            drawdown[id === "dd-balance" ? "balance" : "equity"] = input.value;
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(drawdown)); } catch (_) {}
+            const cursor = input.selectionStart;
+            render();
+            const replacement = readout.querySelector("#" + id);
+            replacement.focus();
+            try { replacement.setSelectionRange(cursor, cursor); } catch (_) {}
+          });
+        });
+        return;
+      }
+      const session = sessions[view];
+      if (!session) return;
+      const parts = zoneParts(now, session.zone);
+      const isOpen = parts.hour >= session.open && parts.hour < session.close;
+      const minsToClose = (session.close - parts.hour - 1) * 60 + (59 - parts.minute);
+      const nextText = isOpen
+        ? "Tutup sekitar " + Math.max(0, Math.floor(minsToClose / 60)) + "j " + Math.max(0, minsToClose % 60) + "m lagi"
+        : "Di luar jam sesi";
+      readout.innerHTML = `
+        <div class="clock-label">${session.label} <span>· ${session.city}</span></div>
+        <div class="clock-main">${formatClock(now, session.zone)} <span>${session.zone}</span></div>
+        <div class="clock-meta">WIB ${formatClock(now, "Asia/Jakarta")} · Jam sesi ${String(session.open).padStart(2,"0")}:00–${String(session.close).padStart(2,"0")}:00 waktu lokal</div>
+        <div class="clock-status ${isOpen ? "is-open" : "is-closed"}"><i></i>${isOpen ? "SESI BUKA" : "SESI TUTUP"} <span>${nextText}</span></div>`;
+    }
+    buttons.forEach(button => button.addEventListener("click", () => {
+      view = button.dataset.clockView;
+      render();
+    }));
+    render();
+    window.setInterval(() => {
+      if (view !== "drawdown") render();
+    }, 1000);
+  }
+
   const emptyParagraph = (text) => {
     const p = document.createElement("p");
     p.className = "empty";
