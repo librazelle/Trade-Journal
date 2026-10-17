@@ -21,6 +21,13 @@ CREATE TABLE IF NOT EXISTS news (
 );
 CREATE INDEX IF NOT EXISTS idx_news_published ON news(published_at);
 
+CREATE TABLE IF NOT EXISTS news_ai_summaries (
+    news_id INTEGER PRIMARY KEY,
+    explanation TEXT NOT NULL,
+    model TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS macro_reactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_type TEXT NOT NULL,
