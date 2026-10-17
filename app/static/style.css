@@ -247,20 +247,22 @@ button.news-filter.active {
 
 
 .calendar-panel {
-  margin: 0 0 18px;
+  grid-column: 1 / -1;
+  margin: 0;
   padding: 0 0 16px;
   border-bottom: 1px solid var(--rule);
 }
+.calendar-panel > h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .calendar-note { margin: 0 0 10px; }
 .calendar-list { display: grid; gap: 0; }
 .calendar-event {
-  padding: 10px 0 10px 10px;
+  padding: 10px 0 10px 12px;
   border-bottom: 1px solid var(--rule);
-  border-left: 2px solid #6f88a8;
+  border-left: 3px solid #4a5b74;
 }
-.calendar-event.high { border-left-color: var(--rumor); }
-.calendar-event.medium { border-left-color: #6f88a8; }
-.calendar-event.low { border-left-color: var(--rule); }
+.calendar-event.high { border-left-color: var(--short); }
+.calendar-event.medium { border-left-color: var(--rumor); }
+.calendar-event.low, .calendar-event.unknown { border-left-color: #4a5b74; }
 .calendar-title { display: block; font: 600 16px/1.3 var(--serif); text-decoration: none; }
 .calendar-title:hover { text-decoration: underline; text-underline-offset: 3px; }
 .calendar-meta, .calendar-countdown {
@@ -268,7 +270,24 @@ button.news-filter.active {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-.calendar-countdown { margin-top: 3px; color: var(--ink); }
+.calendar-meta { margin-top: 2px; }
+.calendar-countdown { margin-top: 4px; color: var(--ink); }
+.calendar-countdown.soon { color: var(--rumor); font-weight: 600; font-size: 14px; }
+.impact-badge {
+  display: inline-block;
+  margin-left: 2px;
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  line-height: 16px;
+  vertical-align: 1px;
+}
+.impact-badge.high { color: var(--short); }
+.impact-badge.medium { color: var(--rumor); }
+.impact-badge.low, .impact-badge.unknown { color: var(--muted); }
 
 
 /* Replay Mode: one chronological lane, readable on narrow mobile screens. */
@@ -368,3 +387,78 @@ a.replay-title:hover { text-decoration: underline; text-underline-offset: 3px; }
 .reaction-table th, .reaction-table td { padding: 9px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
 .reaction-table th { color: var(--muted); font-weight: 500; }
 .reaction-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; padding: 10px 0; font-size: 13px; }
+
+/* ---------- Form: field dengan tombol segmen ---------- */
+.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.field-label { font-size: 13px; color: var(--muted); }
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.segmented button {
+  width: 100%;
+  padding: 11px 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 600 15px var(--sans);
+}
+.segmented button + button { border-left: 1px solid var(--rule); }
+.segmented button[data-value="long"].active,
+.segmented button[data-value="up"].active { background: var(--long); color: var(--bg); }
+.segmented button[data-value="short"].active,
+.segmented button[data-value="down"].active { background: var(--short); color: var(--bg); }
+
+/* ---------- Impor CSV dan status sumber dilipat secara default ---------- */
+.history-import { margin: 8px 0 14px; border: 1px solid var(--rule); padding: 10px 12px; }
+.history-import > summary { cursor: pointer; font: 600 15px/1.3 var(--serif); }
+.history-import[open] > summary { margin-bottom: 8px; }
+.source-health-panel > summary {
+  cursor: pointer;
+  font: 600 15px/1.3 var(--serif);
+  padding: 2px 0 8px;
+  list-style: none;
+}
+.source-health-panel > summary::-webkit-details-marker { display: none; }
+.source-health-panel > summary::after { content: " ▾"; color: var(--muted); }
+.source-health-panel[open] > summary::after { content: " ▴"; }
+
+/* ---------- Navigasi tab bawah (mobile) ---------- */
+.mobile-tabs { display: none; }
+
+@media (max-width: 1099px) {
+  .wrap { padding-bottom: 88px; }
+  .layout > [data-tab] { display: none; }
+  .layout[data-active-tab="calendar"] > [data-tab="calendar"],
+  .layout[data-active-tab="journal"] > [data-tab="journal"],
+  .layout[data-active-tab="news"] > [data-tab="news"] { display: block; }
+
+  .mobile-tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    background: var(--surface);
+    border-top: 1px solid var(--rule);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mobile-tabs button {
+    width: 100%;
+    padding: 14px 6px;
+    border: 0;
+    border-top: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--muted);
+    font: 600 14px var(--sans);
+  }
+  .mobile-tabs button.active { color: var(--ink); border-top-color: var(--ink); }
+}
