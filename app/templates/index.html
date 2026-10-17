@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="local-storage-panel" id="local-storage-panel" aria-labelledby="local-storage-title">
+<div class="layout" data-active-tab="calendar">
+
+  <section class="calendar-panel" id="calendar-panel" data-tab="calendar">
+    <h2>Kalender ekonomi AS <span id="calendar-status" class="muted">memuat jadwal BLS</span></h2>
+    <p class="muted calendar-note">Jadwal resmi BLS. Waktu dalam WIB dan US Eastern. Forecast dan actual belum tersedia.</p>
+    <div class="calendar-list" id="calendar-list"></div>
+  </section>
+
+  <div class="pane" data-tab="journal">
+    <section class="local-storage-panel" id="local-storage-panel" aria-labelledby="local-storage-title">
   <div class="local-storage-heading">
     <div><h2 id="local-storage-title">Penyimpanan lokal HP</h2>
       <p class="muted">Entry baru disimpan di database browser perangkat ini, bukan dikirim ke server. Backup berkala ke file JSON agar data tetap aman.</p></div>
@@ -16,16 +25,6 @@
   <div class="local-storage-summary"><strong id="local-trade-count">0 trade</strong><strong id="local-reaction-count">0 reaksi event</strong></div>
   <div id="local-records" class="local-records"><p class="empty">Belum ada catatan lokal.</p></div>
 </section>
-
-<div class="layout" data-active-tab="calendar">
-
-  <section class="calendar-panel" id="calendar-panel" data-tab="calendar">
-    <h2>Kalender ekonomi AS <span id="calendar-status" class="muted">memuat jadwal BLS</span></h2>
-    <p class="muted calendar-note">Jadwal resmi BLS. Waktu dalam WIB dan US Eastern. Forecast dan actual belum tersedia.</p>
-    <div class="calendar-list" id="calendar-list"></div>
-  </section>
-
-  <div class="pane" data-tab="journal">
     <section>
       <h1>Catat entry</h1>
       <form method="post" action="/trades" class="form">
@@ -216,7 +215,9 @@
         <p class="empty">Belum ada berita makro berdampak tinggi yang cocok dengan aturan klasifikasi.</p>
       {% endif %}
     </section>
-    <h2>Berita terbaru <span id="live-status" class="muted">menghubungkan</span></h2>
+    <details class="all-news-panel">
+      <summary>Semua berita terbaru <span class="muted">· buka hanya jika perlu membaca detail</span></summary>
+      <h2>Berita terbaru <span id="live-status" class="muted">menghubungkan</span></h2>
     <nav class="news-category-nav" aria-label="Filter kategori berita">
       <button type="button" class="news-filter active" data-news-filter="all">Semua</button>
       <button type="button" class="news-filter" data-news-filter="fed">The Fed &amp; suku bunga</button>
@@ -232,6 +233,7 @@
       {% for item in news %}{% include "partials/news_item.html" %}
       {% else %}<p class="empty">Belum ada berita. Worker sedang mengambil data pertama.</p>{% endfor %}
     </div>
+    </details>
   </aside>
 </div>
 
