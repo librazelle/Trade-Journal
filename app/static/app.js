@@ -67,6 +67,57 @@
     });
   }
 
+
+  // ---------- Penjelasan berita dengan AI (hanya saat tombol ditekan) ----------
+  if (feed) {
+    feed.addEventListener("click", async event => {
+      const button = event.target.closest("[data-ai-explain]");
+      if (!button) return;
+      const article = button.closest(".news");
+      const panel = article && article.querySelector("[data-ai-explanation]");
+      const newsId = article && article.dataset.newsId;
+      if (!panel || !newsId) {
+        if (panel) {
+          panel.hidden = false;
+          panel.textContent = "ID berita tidak tersedia. Muat ulang halaman.";
+        }
+        return;
+      }
+      if (panel.dataset.loaded === "true") {
+        panel.hidden = !panel.hidden;
+        return;
+      }
+      button.disabled = true;
+      button.textContent = "AI sedang menjelaskan...";
+      panel.hidden = false;
+      panel.textContent = "Menghubungi AI. Hasil akan disimpan agar permintaan yang sama tidak perlu ditagih berulang kali.";
+      try {
+        const response = await fetch("/api/news/" + encodeURIComponent(newsId) + "/explain", {
+          method: "POST",
+          headers: { "Accept": "application/json" },
+          cache: "no-store"
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.detail || "Gagal meminta penjelasan AI.");
+        panel.replaceChildren();
+        const title = document.createElement("p");
+        title.className = "ai-title";
+        title.textContent = "Penjelasan AI · bahasa pemula";
+        const copy = document.createElement("p");
+        copy.className = "ai-copy";
+        copy.textContent = payload.explanation;
+        panel.append(title, copy);
+        panel.dataset.loaded = "true";
+        button.textContent = "Sembunyikan penjelasan AI";
+      } catch (error) {
+        panel.textContent = error.message || "Penjelasan AI gagal dimuat. Coba lagi nanti.";
+        button.textContent = "Coba jelaskan lagi";
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
   // ---------- Filter kategori berita ----------
   const filterBar = document.querySelector(".news-category-nav");
   const filterCount = document.getElementById("news-filter-count");

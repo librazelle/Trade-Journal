@@ -1,4 +1,4 @@
-<article class="news {{ item.status }}">
+<article class="news {{ item.status }}" data-news-id="{{ item.id }}">
   <div class="meta">
     <span class="status {{ item.status }}">{{ {'official': 'resmi', 'reported': 'dilaporkan', 'rumor': 'rumor'}.get(item.status, item.status) }}</span>
     <span>{{ item.source }}</span>
@@ -14,6 +14,8 @@
     <p class="explain-simple"><strong>Bahasa gampang:</strong> {{ item.summary_simple }}</p>
   </div>
   {% if item.summary %}<p class="original-summary"><strong>Ringkasan sumber:</strong> {{ item.summary }}</p>{% endif %}
+  <button type="button" class="ai-explain-button" data-ai-explain>Jelaskan berita dengan AI</button>
+  <section class="ai-explanation" data-ai-explanation hidden aria-live="polite"></section>
   {% if item.tags_list %}
   <div class="tags">{% for t in item.tags_list %}<span>{{ t }}</span>{% endfor %}</div>
   {% endif %}
