@@ -120,7 +120,7 @@
       status.textContent = restored + " catatan dipulihkan. Catatan dengan ID sama diperbarui, bukan digandakan.";
     };
 
-    panel.querySelectorAll('form[action="/trades"], form[action="/macro-reactions"]').forEach(form => {
+    document.querySelectorAll('form[action="/trades"], form[action="/macro-reactions"]').forEach(form => {
       form.addEventListener("submit", async event => {
         event.preventDefault();
         const isTrade = form.getAttribute("action") === "/trades";
