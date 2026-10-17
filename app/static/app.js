@@ -9,6 +9,56 @@
     return p;
   };
 
+
+  // ---------- Toolbar: jam sesi global + reset drawdown ----------
+  const timeMenu = document.getElementById("time-info-menu");
+  if (timeMenu) {
+    const clockFormatters = new Map();
+    timeMenu.querySelectorAll("[data-clock-zone]").forEach(node => {
+      const zone = node.dataset.clockZone;
+      clockFormatters.set(zone, new Intl.DateTimeFormat("id-ID", {
+        timeZone: zone, hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hourCycle: "h23"
+      }));
+    });
+    const drawdownCountdown = timeMenu.querySelector("#drawdown-countdown");
+    const updateToolbarClocks = () => {
+      const now = new Date();
+      timeMenu.querySelectorAll("[data-clock-zone]").forEach(node => {
+        const formatter = clockFormatters.get(node.dataset.clockZone);
+        if (formatter) node.textContent = formatter.format(now);
+      });
+      // Prop reset harian ditampilkan dalam WIB, mengikuti reset yang digunakan di jurnal.
+      const wibParts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+      }).formatToParts(now).reduce((out, part) => {
+        if (part.type !== "literal") out[part.type] = Number(part.value);
+        return out;
+      }, {});
+      const elapsed = wibParts.hour * 3600 + wibParts.minute * 60 + wibParts.second;
+      const resetSeconds = 3 * 3600;
+      const remaining = (resetSeconds - elapsed + 86400) % 86400 || 86400;
+      const hours = Math.floor(remaining / 3600);
+      const minutes = Math.floor((remaining % 3600) / 60);
+      const seconds = remaining % 60;
+      if (drawdownCountdown) {
+        drawdownCountdown.textContent = "Reset dalam " +
+          String(hours).padStart(2, "0") + ":" +
+          String(minutes).padStart(2, "0") + ":" +
+          String(seconds).padStart(2, "0") + " · WIB";
+      }
+    };
+    updateToolbarClocks();
+    window.setInterval(updateToolbarClocks, 1000);
+    document.addEventListener("click", event => {
+      if (!timeMenu.contains(event.target)) timeMenu.open = false;
+      document.querySelectorAll(".toolbar-menu[open]").forEach(menu => {
+        if (!menu.contains(event.target)) menu.open = false;
+      });
+    });
+  }
+
   // ---------- Database lokal perangkat + backup JSON ----------
   // IndexedDB menyimpan entry baru pada origin browser ini. Jangan kirim data lokal ke server.
   const localPanel = document.getElementById("local-storage-panel");
