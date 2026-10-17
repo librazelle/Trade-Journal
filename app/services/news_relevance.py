@@ -5,7 +5,7 @@ These are transparent keyword heuristics, not measured correlations or trade sig
 
 RULES = [
     (("fomc", "federal reserve", "fed funds rate", "rate decision", "interest rate decision", "interest rates", "powell", "central bank", "monetary policy"),
-     "Kebijakan bank sentral", ["XAUUSD", "NASDAQ100", "S&P500", "DXY", "US10Y"]),
+     "FOMC / kebijakan Fed", ["XAUUSD", "NASDAQ100", "S&P500", "DXY", "US10Y"]),
     (("consumer price index", "cpi", "producer price index", "ppi", "personal consumption expenditures", "pce", "inflation", "inflationary"),
      "Inflasi", ["XAUUSD", "NASDAQ100", "S&P500", "DXY", "US10Y"]),
     (("nonfarm payroll", "employment situation", "unemployment rate", "payroll employment", "jobs report", "jobless claims", "labour market", "labor market", "wage growth"),
