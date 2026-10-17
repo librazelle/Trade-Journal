@@ -33,3 +33,15 @@ def test_summary_ignores_invalid_rows_and_groups_instrument():
 
 def test_empty_dataset_returns_empty_list():
     assert summarize_reactions([]) == []
+
+
+def test_summary_ignores_nan_and_infinite_prices():
+    rows = [
+        {"event_type": "CPI", "instrument": "XAUUSD", "expected_direction": "up", "price_before": float("nan"), "price_after_15m": 2010},
+        {"event_type": "CPI", "instrument": "XAUUSD", "expected_direction": "up", "price_before": 2000, "price_after_15m": float("inf")},
+        {"event_type": "CPI", "instrument": "XAUUSD", "expected_direction": "up", "price_before": 2000, "price_after_15m": 2010},
+    ]
+    result = summarize_reactions(rows)
+    assert len(result) == 1
+    assert result[0]["samples"] == 1
+    assert result[0]["median_change_pct"] == 0.5

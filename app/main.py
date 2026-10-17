@@ -1,6 +1,7 @@
 """Entry point. Jalankan: uvicorn app.main:app --workers 1"""
 import asyncio
 import json
+import math
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -56,9 +57,12 @@ def _parse_float(value: str, label: str, required: bool = False) -> float | None
             raise HTTPException(400, f"{label} wajib diisi")
         return None
     try:
-        return float(value)
+        parsed = float(value)
     except ValueError:
         raise HTTPException(400, f"{label} harus berupa angka") from None
+    if not math.isfinite(parsed):
+        raise HTTPException(400, f"{label} harus berupa angka yang valid")
+    return parsed
 
 
 def _local_to_utc(value: str) -> datetime:
