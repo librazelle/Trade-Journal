@@ -47,9 +47,19 @@ python -m pytest
 | `TL_DISPLAY_TZ` | `Asia/Jakarta` | Zona waktu tampilan |
 | `TL_LOOKBACK_HOURS` | `5` | Berapa jam berita sebelum entry yang diambil |
 | `TL_ENABLE_WORKER` | `1` | Set `0` untuk mematikan polling connector |
-| `TL_USER_AGENT` | `trade-lens/0.1 ...` | User-Agent saat mengambil data. Isi dengan kontak kamu. |\n| `OPENAI_API_KEY` | kosong | Kunci rahasia OpenAI API untuk fitur penjelasan berita. Simpan hanya di environment server, jangan commit ke GitHub atau frontend. |\n| `TL_AI_MODEL` | `gpt-6-luna` | Model API untuk penjelasan berita; bisa diganti sesuai model yang tersedia di akun API. |
+| `TL_USER_AGENT` | `trade-lens/0.1 ...` | User-Agent saat mengambil data. Isi dengan kontak kamu. |
+| `HF_TOKEN` | kosong | Token Hugging Face dengan izin Inference Providers. Simpan hanya di environment server. |
+| `TL_AI_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | Model open-weight yang digunakan melalui Hugging Face Inference Providers. |
 
-## Penjelasan berita dengan AI\n\nTombol **Jelaskan berita dengan AI** mengirim judul dan ringkasan feed ke OpenAI Responses API hanya saat ditekan. Hasilnya disimpan per artikel agar klik berikutnya tidak memanggil API lagi. Fitur ini membutuhkan API key dan billing API yang aktif; langganan ChatGPT tidak otomatis mencakup kredit API.\n\nDi Render, buka dashboard service Trade-Lens → **Environment** → tambahkan `OPENAI_API_KEY` dan isi key dari OpenAI API Platform. Opsional, atur `TL_AI_MODEL` ke model yang tersedia pada akun API. Jangan taruh key di kode frontend, GitHub, atau screenshot. Setelah menyimpan environment, tunggu redeploy. Tanpa key, tombol akan menampilkan pesan konfigurasi dan fitur AI tidak memanggil layanan eksternal.\n\nPenjelasan menggunakan informasi judul/ringkasan yang tersimpan, bukan jaminan bahwa artikel lengkap telah dibaca. Dampak pasar disampaikan sebagai kemungkinan, bukan sinyal buy/sell.\n\n## Menambah connector baru
+## AI Summarize
+
+Tombol **AI Summarize · Qwen** mengirim judul dan ringkasan feed ke model open-weight Qwen melalui Hugging Face Inference Providers hanya saat ditekan. Hasil disimpan per artikel agar permintaan yang sama tidak diulang. Kode aplikasi tidak lagi memerlukan OpenAI API key.
+
+Untuk mengaktifkan fitur, buat token di Hugging Face dengan izin Inference Providers, lalu buka Render → service Trade-Lens → **Environment**, tambahkan `HF_TOKEN`, dan atur opsional `TL_AI_MODEL` jika ingin memilih model lain yang didukung akun/provider. Simpan token hanya di environment server, jangan di GitHub atau frontend, lalu redeploy. Akses gratis Hugging Face memiliki batas/kredit yang dapat berubah; ini bukan jaminan pemakaian tanpa batas.
+
+Penjelasan menggunakan judul/ringkasan yang tersedia, bukan jaminan bahwa artikel penuh telah dibaca. Dampak pasar disampaikan sebagai kemungkinan, bukan sinyal buy/sell.
+
+## Menambah connector baru
 
 1. Buat file di `app/connectors/`, misalnya `bls_calendar.py`.
 2. Implementasikan class yang mewarisi `Connector` dan mengembalikan list `NewsItem` dari `fetch()`.
