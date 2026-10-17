@@ -9,11 +9,22 @@
   // ---------- Free macro release expectation analysis ----------
   const expectationForm = document.getElementById("news-expectation-form");
   const expectationResult = document.getElementById("news-expectation-result");
+  const expectationEmpty = document.getElementById("news-expectation-empty");
   if (expectationForm && expectationResult) {
+    const clearExpectationResult = () => {
+      expectationResult.replaceChildren();
+      expectationResult.hidden = true;
+      delete expectationResult.dataset.bias;
+      if (expectationEmpty) expectationEmpty.hidden = false;
+    };
+    expectationForm.addEventListener("input", clearExpectationResult);
+    expectationForm.addEventListener("change", clearExpectationResult);
     expectationForm.addEventListener("submit", async event => {
       event.preventDefault();
       const button = expectationForm.querySelector('button[type="submit"]');
       button.disabled = true;
+      expectationResult.hidden = false;
+      if (expectationEmpty) expectationEmpty.hidden = true;
       expectationResult.textContent = "Menganalisis nilai yang dimasukkan…";
       try {
         const response = await fetch("/api/news-expectation", {
@@ -25,9 +36,9 @@
         if (!response.ok) throw new Error("HTTP " + response.status);
         const data = await response.json();
         const title = document.createElement("h3");
-        title.textContent = data.event_type ? data.event_type.toUpperCase().replaceAll("_", " ") : "EVENT BELUM DIKENALI";
+        title.textContent = data.event_name || "EVENT BELUM DIKENALI";
         const facts = document.createElement("p");
-        facts.textContent = "Actual: " + (data.actual ?? "—") + " · Forecast: " + (data.forecast ?? "tidak tersedia") + " · Previous: " + (data.previous ?? "—");
+        facts.textContent = "Actual: " + (data.actual || "—") + " · Forecast: " + (data.forecast || "tidak tersedia") + " · Previous: " + (data.previous || "—");
         const bias = document.createElement("p");
         const biasLabels = { hawkish: "Bias makro: HAWKISH", dovish: "Bias makro: DOVISH", mixed: "Bias makro: MIXED / sesuai forecast", unknown: "Bias makro: BELUM DAPAT DITENTUKAN" };
         bias.textContent = biasLabels[data.macro_bias] || "Bias makro belum tersedia";
@@ -38,6 +49,7 @@
         confirmation.textContent = "Konfirmasi harga: belum diperiksa. " + (data.source_note || "");
         expectationResult.replaceChildren(title, facts, bias, explanation, confirmation);
         expectationResult.dataset.bias = data.macro_bias || "unknown";
+        expectationResult.scrollIntoView({ behavior: "smooth", block: "nearest" });
       } catch (error) {
         expectationResult.textContent = "Analisis gagal: " + (error.message || "kesalahan tidak diketahui");
       } finally {
