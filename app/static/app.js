@@ -189,8 +189,16 @@
     });
     openDb().then(async database => {
       db = database;
+      let persistence = "browser-managed";
+      try {
+        if (navigator.storage && navigator.storage.persist) {
+          persistence = await navigator.storage.persist() ? "persistent" : "browser-managed";
+        }
+      } catch (_) {}
       await renderRecords();
-      status.textContent = "Database lokal aktif di browser/perangkat ini.";
+      status.textContent = persistence === "persistent"
+        ? "Database lokal aktif; browser memberi izin penyimpanan persisten."
+        : "Database lokal aktif; ekspor backup rutin karena browser masih dapat menghapus data situs.";
     }).catch(error => {
       status.textContent = "Database lokal tidak tersedia: " + (error.message || "error");
       exportButton.disabled = true;
