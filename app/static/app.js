@@ -151,6 +151,45 @@
         const title = document.createElement("p");
         title.className = "ai-title";
         title.textContent = "AI Summarize · Gemini";
+        const scorecard = payload.scorecard;
+        if (scorecard) {
+          const card = document.createElement("section");
+          card.className = "news-scorecard";
+          const heading = document.createElement("h4");
+          heading.textContent = "News Impact Scorecard";
+          card.appendChild(heading);
+          const event = document.createElement("p");
+          event.textContent = "Kategori: " + (scorecard.event_type || "Belum terklasifikasi");
+          card.appendChild(event);
+          const assets = document.createElement("div");
+          assets.className = "scorecard-assets";
+          Object.entries(scorecard.relevance || {}).forEach(([asset, data]) => {
+            const row = document.createElement("div");
+            row.className = "scorecard-asset";
+            const label = document.createElement("strong");
+            label.textContent = asset + " · " + (data.relevance || "Belum jelas");
+            const reason = document.createElement("p");
+            reason.textContent = data.reason || "Tidak ada alasan yang tersedia.";
+            row.append(label, reason);
+            if (Array.isArray(data.matched_terms) && data.matched_terms.length) {
+              const terms = document.createElement("small");
+              terms.textContent = "Kata kunci: " + data.matched_terms.join(", ");
+              row.appendChild(terms);
+            }
+            assets.appendChild(row);
+          });
+          card.appendChild(assets);
+          const quality = document.createElement("p");
+          quality.textContent = "Kualitas bukti: " + (scorecard.evidence_quality || "Belum dinilai") + ". " + (scorecard.evidence_note || "");
+          card.appendChild(quality);
+          const direction = document.createElement("p");
+          direction.textContent = "Arah: belum ditentukan. " + (scorecard.direction_note || "");
+          card.appendChild(direction);
+          const method = document.createElement("small");
+          method.textContent = scorecard.method || "Heuristik; bukan sinyal trading.";
+          card.appendChild(method);
+          panel.appendChild(card);
+        }
         const copy = document.createElement("div");
         copy.className = "ai-copy ai-markdown";
         renderAiMarkdown(copy, payload.explanation || "Penjelasan kosong.");
