@@ -496,3 +496,15 @@ button.ai-explain-button:disabled { opacity: .6; cursor: wait; }
 .ai-markdown ul { margin: 4px 0 12px; padding-left: 22px; }
 .ai-markdown li { margin: 4px 0; }
 .ai-markdown strong { color: var(--ink); font-weight: 700; }
+
+
+/* News Impact Scorecard: responsive, evidence-first display */
+.news-scorecard { margin: 0 0 16px; padding: 14px; border: 1px solid var(--line, #334155); border-radius: 10px; background: rgba(15, 23, 42, .35); }
+.news-scorecard h4 { margin: 0 0 10px; font-size: 1rem; }
+.news-scorecard > p { margin: 8px 0; }
+.scorecard-assets { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 10px 0; }
+.scorecard-asset { padding: 10px; border-radius: 8px; background: rgba(100, 116, 139, .10); }
+.scorecard-asset strong { display: block; }
+.scorecard-asset p { margin: 5px 0; }
+.scorecard-asset small, .news-scorecard > small { display: block; opacity: .78; line-height: 1.45; overflow-wrap: anywhere; }
+@media (min-width: 620px) { .scorecard-assets { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
