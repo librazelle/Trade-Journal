@@ -14,7 +14,7 @@
     <p class="explain-simple"><strong>Bahasa gampang:</strong> {{ item.summary_simple }}</p>
   </div>
   {% if item.summary %}<p class="original-summary"><strong>Ringkasan sumber:</strong> {{ item.summary }}</p>{% endif %}
-  <button type="button" class="ai-explain-button" data-ai-explain>AI Summarize · Qwen</button>
+  <button type="button" class="ai-explain-button" data-ai-explain>AI Summarize · Gemini</button>
   <section class="ai-explanation" data-ai-explanation hidden aria-live="polite"></section>
   {% if item.tags_list %}
   <div class="tags">{% for t in item.tags_list %}<span>{{ t }}</span>{% endfor %}</div>

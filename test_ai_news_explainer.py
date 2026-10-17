@@ -49,6 +49,11 @@ def test_ai_explainer_sends_beginner_prompt_and_returns_text(monkeypatch):
     assert request["headers"]["x-goog-api-key"] == "test-secret"
     assert "Bahasa Indonesia" in request["json"]["systemInstruction"]["parts"][0]["text"]
     assert "Tariff dispute escalates" in request["json"]["contents"][0]["parts"][0]["text"]
+    prompt = request["json"]["systemInstruction"]["parts"][0]["text"]
+    assert "RELEVANSI PASAR" in prompt
+    assert "KUALITAS BUKTI" in prompt
+    assert "probabilitas numerik" in prompt
+    assert service.SUMMARY_VERSION == "trader-brief-v2"
 
 
 def test_ai_explainer_requires_gemini_api_key(monkeypatch):

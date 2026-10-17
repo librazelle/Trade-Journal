@@ -68,7 +68,59 @@
   }
 
 
-  // ---------- AI Summarize dengan model open-weight (hanya saat tombol ditekan) ----------
+  // ---------- AI news explanation (Gemini) ----------
+  const renderAiMarkdown = (container, source) => {
+    // Small safe renderer for the limited Markdown produced by the explainer.
+    // All content is inserted as text nodes; never interpret model output as HTML.
+    const inline = (parent, text) => {
+      const parts = text.split(/(\\*\\*[^*]+\\*\\*|\\*[^*]+\\*)/g);
+      parts.forEach(part => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          const node = document.createElement("strong");
+          node.textContent = part.slice(2, -2);
+          parent.appendChild(node);
+        } else if (part.startsWith("*") && part.endsWith("*")) {
+          const node = document.createElement("em");
+          node.textContent = part.slice(1, -1);
+          parent.appendChild(node);
+        } else if (part) {
+          parent.appendChild(document.createTextNode(part));
+        }
+      });
+    };
+    container.replaceChildren();
+    let list = null;
+    source.split(/\\r?\\n/).forEach(rawLine => {
+      const line = rawLine.trim();
+      if (!line) { list = null; return; }
+      const heading = line.match(/^\\*\\*(?:\\d+\\.\\s*)?([^*]+):\\*\\*$/);
+      if (heading) {
+        list = null;
+        const h = document.createElement("h4");
+        h.className = "ai-section-heading";
+        h.textContent = heading[1].replace(/^\\d+\\.\\s*/, "").replace(/:$/, "");
+        container.appendChild(h);
+        return;
+      }
+      const item = line.match(/^(?:[-*]\\s+|\\*\\s+\\*\\*)/);
+      if (item) {
+        if (!list) {
+          list = document.createElement("ul");
+          list.className = "ai-list";
+          container.appendChild(list);
+        }
+        const li = document.createElement("li");
+        inline(li, line.replace(/^(?:[-*]\\s+)/, "").replace(/^\\*\\s+/, ""));
+        list.appendChild(li);
+        return;
+      }
+      list = null;
+      const p = document.createElement("p");
+      inline(p, line);
+      container.appendChild(p);
+    });
+  };
+
   if (feed) {
     feed.addEventListener("click", async event => {
       const button = event.target.closest("[data-ai-explain]");
@@ -77,44 +129,38 @@
       const panel = article && article.querySelector("[data-ai-explanation]");
       const newsId = article && article.dataset.newsId;
       if (!panel || !newsId) {
-        if (panel) {
-          panel.hidden = false;
-          panel.textContent = "ID berita tidak tersedia. Muat ulang halaman.";
-        }
+        if (panel) { panel.hidden = false; panel.textContent = "ID berita tidak tersedia. Muat ulang halaman."; }
         return;
       }
       if (panel.dataset.loaded === "true") {
         panel.hidden = !panel.hidden;
+        button.textContent = panel.hidden ? "Tampilkan ringkasan AI" : "Sembunyikan ringkasan AI";
         return;
       }
       button.disabled = true;
       button.textContent = "AI sedang merangkum...";
       panel.hidden = false;
-      panel.textContent = "Menghubungi model AI open-weight. Hasil disimpan agar berita yang sama tidak perlu diringkas ulang.";
+      panel.textContent = "Gemini sedang merangkum judul dan ringkasan berita yang tersedia...";
       try {
         const response = await fetch("/api/news/" + encodeURIComponent(newsId) + "/explain", {
-          method: "POST",
-          headers: { "Accept": "application/json" },
-          cache: "no-store"
+          method: "POST", headers: { "Accept": "application/json" }, cache: "no-store"
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.detail || "Gagal meminta penjelasan AI.");
         panel.replaceChildren();
         const title = document.createElement("p");
         title.className = "ai-title";
-        title.textContent = "AI Summarize · Qwen";
-        const copy = document.createElement("p");
-        copy.className = "ai-copy";
-        copy.textContent = payload.explanation;
+        title.textContent = "AI Summarize · Gemini";
+        const copy = document.createElement("div");
+        copy.className = "ai-copy ai-markdown";
+        renderAiMarkdown(copy, payload.explanation || "Penjelasan kosong.");
         panel.append(title, copy);
         panel.dataset.loaded = "true";
         button.textContent = "Sembunyikan ringkasan AI";
       } catch (error) {
         panel.textContent = error.message || "AI Summarize gagal dimuat. Coba lagi nanti.";
         button.textContent = "Coba ringkas lagi";
-      } finally {
-        button.disabled = false;
-      }
+      } finally { button.disabled = false; }
     });
   }
 
