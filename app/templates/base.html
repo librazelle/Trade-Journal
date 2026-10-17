@@ -16,8 +16,28 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/">trade-lens</a>
-    <nav aria-label="Navigasi utama"><a href="/research">External Research</a></nav>
-    <span class="tz">Zona waktu {{ tz|default('') }}</span>
+    <nav class="toolbar" aria-label="Trading toolbar">
+      <details class="toolbar-menu">
+        <summary>External Research</summary>
+        <div class="toolbar-dropdown">
+          <a href="/research">Research Library <span aria-hidden="true">↗</span></a>
+          <a href="https://www.bls.gov/schedule/" target="_blank" rel="noopener noreferrer">BLS release schedule <span aria-hidden="true">↗</span></a>
+        </div>
+      </details>
+      <div class="market-clock" id="market-clock" aria-label="Jam pasar dan drawdown">
+        <div class="clock-options" role="group" aria-label="Pilihan informasi">
+          <button type="button" data-clock-view="drawdown" aria-pressed="true">Drawdown</button>
+          <button type="button" data-clock-view="asia" aria-pressed="false">Asia</button>
+          <button type="button" data-clock-view="europe" aria-pressed="false">Eropa</button>
+          <button type="button" data-clock-view="newyork" aria-pressed="false">New York</button>
+        </div>
+        <div class="clock-readout" id="clock-readout" aria-live="polite">
+          <span class="clock-label">Drawdown tracker</span>
+          <span class="clock-main">Masukkan balance dan equity</span>
+        </div>
+      </div>
+      <span class="tz">WIB · Asia/Jakarta</span>
+    </nav>
   </header>
   <main class="wrap">
     {% block content %}{% endblock %}

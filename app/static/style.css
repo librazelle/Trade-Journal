@@ -720,3 +720,148 @@ button:active { transform: translateY(1px); }
   .calendar-event.featured .calendar-title { font-size: 17px; }
   .calendar-next { margin-top: 8px; }
 }
+
+
+/* Trading toolbar: compact controls for a side-by-side MetaTrader workflow. */
+.topbar {
+  align-items: flex-start;
+  gap: 14px;
+}
+.topbar .toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.toolbar-menu { position: relative; flex: 0 0 auto; }
+.toolbar-menu summary {
+  list-style: none;
+  cursor: pointer;
+  border: 1px solid #354151;
+  border-radius: 4px;
+  padding: 7px 10px;
+  color: var(--ink);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.toolbar-menu summary::-webkit-details-marker { display: none; }
+.toolbar-menu summary::after { content: " ▾"; color: var(--muted); }
+.toolbar-dropdown {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  gap: 2px;
+  min-width: 190px;
+  padding: 6px;
+  background: #151c26;
+  border: 1px solid #354151;
+  border-radius: 5px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.32);
+}
+.toolbar-dropdown a {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  color: var(--ink);
+  font-size: 12px;
+  text-decoration: none;
+  border-radius: 3px;
+}
+.toolbar-dropdown a:hover { background: #222d3b; }
+.market-clock {
+  display: grid;
+  gap: 7px;
+  width: min(100%, 520px);
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #2b3542;
+  border-radius: 5px;
+  background: rgba(17,23,32,.72);
+}
+.clock-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.clock-options button {
+  padding: 5px 8px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.clock-options button.active {
+  color: var(--ink);
+  border-color: #526176;
+  background: #222d3b;
+}
+.clock-readout { display: grid; gap: 5px; min-width: 0; }
+.clock-label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.clock-label span, .clock-main span { color: var(--muted); text-transform: none; letter-spacing: 0; }
+.clock-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font: 600 18px/1.2 var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.clock-main span { font: 11px/1.4 var(--sans); overflow-wrap: anywhere; }
+.clock-meta, .clock-footnote { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.clock-footnote { margin: 0; }
+.clock-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.clock-status i { width: 6px; height: 6px; border-radius: 50%; background: #8795a8; }
+.clock-status.is-open { color: var(--long); }
+.clock-status.is-open i { background: var(--long); }
+.clock-status.is-closed { color: var(--muted); }
+.clock-status span { margin-left: auto; font-weight: 400; color: var(--muted); }
+.drawdown-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.drawdown-fields label { display: grid; gap: 3px; color: var(--muted); font-size: 10px; }
+.drawdown-fields input {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 7px;
+  color: var(--ink);
+  background: #0d1219;
+  border: 1px solid #354151;
+  border-radius: 3px;
+  font: 12px var(--mono);
+}
+.clock-result { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.clock-result strong { font: 600 16px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.clock-result span { color: var(--muted); font-size: 11px; }
+@media (max-width: 760px) {
+  .topbar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; }
+  .topbar .toolbar { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr); justify-content: stretch; gap: 8px; }
+  .toolbar-menu { width: max-content; }
+  .toolbar-dropdown { left: 0; right: auto; }
+  .market-clock { width: 100%; }
+  .topbar .tz { grid-column: 1 / -1; font-size: 10px; }
+}
+@media (max-width: 360px) {
+  .drawdown-fields { grid-template-columns: minmax(0, 1fr); }
+  .clock-options button { padding: 5px 6px; }
+}
