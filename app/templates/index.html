@@ -1,5 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
+<section class="local-storage-panel" id="local-storage-panel" aria-labelledby="local-storage-title">
+  <div class="local-storage-heading">
+    <div><h2 id="local-storage-title">Penyimpanan lokal HP</h2>
+      <p class="muted">Entry baru disimpan di database browser perangkat ini, bukan dikirim ke server. Backup berkala ke file JSON agar data tetap aman.</p></div>
+    <span id="local-storage-status" class="storage-status" role="status">Menyiapkan database lokal…</span>
+  </div>
+  <div class="local-storage-actions">
+    <button type="button" id="local-backup-export">Ekspor backup</button>
+    <button type="button" class="secondary-button" id="local-backup-import">Pulihkan backup</button>
+    <input type="file" id="local-backup-file" accept=".json,application/json" hidden>
+  </div>
+  <p class="muted">File backup: <code>Trade-Lens-Backup-YYYY-MM-DD.json</code>. Simpan di folder HP <code>Documents/Trade-Lens/</code>. Database aktif tersimpan di data situs/browser ini; file backup adalah salinan terpisah.</p>
+  <div class="local-storage-summary"><strong id="local-trade-count">0 trade</strong><strong id="local-reaction-count">0 reaksi event</strong></div>
+  <div id="local-records" class="local-records"><p class="empty">Belum ada catatan lokal.</p></div>
+</section>
+
 <div class="layout" data-active-tab="calendar">
 
   <section class="calendar-panel" id="calendar-panel" data-tab="calendar">
