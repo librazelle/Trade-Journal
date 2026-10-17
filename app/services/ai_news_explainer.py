@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import httpx
 
-from .config import settings
+from ..config import settings
 
 
 SYSTEM_PROMPT = """Kamu adalah penjelas berita ekonomi dan geopolitik untuk pemula di Indonesia.
