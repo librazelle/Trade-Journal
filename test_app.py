@@ -26,6 +26,11 @@ def test_dashboard_renders(client):
     assert "news-category-nav" in r.text
     assert "data-news-filter=\"inflation\"" in r.text
     assert "data-news-filter=\"jobs\"" in r.text
+    assert "External Research" in r.text
+    assert "data-clock-view=\"drawdown\"" in r.text
+    assert "data-clock-view=\"asia\"" in r.text
+    assert "data-clock-view=\"europe\"" in r.text
+    assert "data-clock-view=\"newyork\"" in r.text
 
 
 def test_create_and_view_trade(client):
