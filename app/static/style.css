@@ -865,3 +865,59 @@ button:active { transform: translateY(1px); }
   .drawdown-fields { grid-template-columns: minmax(0, 1fr); }
   .clock-options button { padding: 5px 6px; }
 }
+
+
+/* Dual clocks and session-open countdown. */
+.clock-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.clock-time-card {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #354151;
+  border-radius: 4px;
+  background: #0d1219;
+}
+.clock-time-label {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: .035em;
+}
+.clock-time-card strong {
+  font: 600 19px/1.2 var(--mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.clock-time-card small {
+  color: var(--muted);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.clock-time-card.local { border-color: #42566a; }
+.session-countdown {
+  margin-top: 7px;
+  padding: 9px 10px;
+  border: 1px solid #66563b;
+  border-radius: 4px;
+  background: rgba(110, 82, 37, .14);
+  color: #e5c27e;
+  font: 600 15px/1.3 var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.session-countdown.is-open {
+  border-color: #315b49;
+  background: rgba(49, 91, 73, .14);
+  color: var(--long);
+}
+@media (max-width: 420px) {
+  .clock-pair { gap: 5px; }
+  .clock-time-card { padding: 7px; }
+  .clock-time-card strong { font-size: 16px; }
+  .clock-time-label { font-size: 9px; }
+}
