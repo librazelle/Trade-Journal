@@ -323,9 +323,11 @@ async def explain_news_endpoint(news_id: int, request: Request):
             (news_id,),
         ).fetchone()
     from .services.ai_news_explainer import SUMMARY_VERSION
+    from .services.news_scorecard import build_news_scorecard
+    scorecard = build_news_scorecard(row["title"], row["summary"] or "", row["source"], row["tier"])
     cache_model = f"{settings.gemini_model}:{SUMMARY_VERSION}"
     if cached and cached["model"] == cache_model:
-        return {"news_id": news_id, "explanation": cached["explanation"], "cached": True, "model": settings.gemini_model}
+        return {"news_id": news_id, "explanation": cached["explanation"], "scorecard": scorecard, "cached": True, "model": settings.gemini_model}
     if not settings.gemini_api_key:
         raise HTTPException(503, "Fitur AI belum dikonfigurasi. Admin perlu mengisi GEMINI_API_KEY di environment server.")
 
@@ -382,7 +384,7 @@ async def explain_news_endpoint(news_id: int, request: Request):
                  explanation=excluded.explanation, model=excluded.model, created_at=excluded.created_at""",
             (news_id, explanation, cache_model, created_at),
         )
-    return {"news_id": news_id, "explanation": explanation, "cached": False, "model": settings.gemini_model}
+    return {"news_id": news_id, "explanation": explanation, "scorecard": scorecard, "cached": False, "model": settings.gemini_model}
 
 
 @app.get("/stream/news")
