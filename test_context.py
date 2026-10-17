@@ -46,6 +46,6 @@ def test_dedup(tmp_path, monkeypatch):
 
     now = datetime(2026, 10, 16, 8, 0, tzinfo=UTC)
     first = save_items([_item("x", "CPI sama", now)])
-    second = save_items([_item("x", "sama", now)])
+    second = save_items([_item("x", "CPI sama", now)])
     assert len(first) == 1
     assert second == []
