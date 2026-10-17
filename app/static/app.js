@@ -319,6 +319,77 @@
     window.setInterval(refreshSourceHealth, 10000);
   }
 
+  // ---------- Historical Event Lab: descriptive stats from recorded observations ----------
+  const eventLabButton = document.getElementById("event-lab-refresh");
+  if (eventLabButton) {
+    const eventSelect = document.getElementById("event-lab-event");
+    const instrumentSelect = document.getElementById("event-lab-instrument");
+    const eventLabStatus = document.getElementById("event-lab-status");
+    const eventLabBody = document.getElementById("event-lab-results");
+    const limitationsList = document.getElementById("event-lab-limitations");
+    const cell = (value) => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      return td;
+    };
+    const showEventLab = async () => {
+      eventLabButton.disabled = true;
+      eventLabStatus.textContent = "Menghitung statistik...";
+      eventLabBody.replaceChildren();
+      limitationsList.replaceChildren();
+      try {
+        const params = new URLSearchParams();
+        if (eventSelect.value) params.set("event_type", eventSelect.value);
+        if (instrumentSelect.value) params.set("instrument", instrumentSelect.value);
+        const suffix = params.toString();
+        const response = await fetch("/api/research/event-lab" + (suffix ? "?" + suffix : ""), { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const payload = await response.json();
+        const results = Array.isArray(payload.results) ? payload.results : [];
+        if (!results.length) {
+          const row = document.createElement("tr");
+          const empty = cell("Belum ada data yang cocok dengan filter.");
+          empty.colSpan = 7;
+          row.appendChild(empty);
+          eventLabBody.appendChild(row);
+        } else {
+          results.forEach(item => {
+            const row = document.createElement("tr");
+            row.append(
+              cell(item.event_type || "—"),
+              cell(item.instrument || "—"),
+              cell(String(item.samples ?? 0)),
+              cell(Number.isFinite(item.median_change_pct) ? item.median_change_pct.toFixed(5) + "%" : "—"),
+              cell(Number.isFinite(item.mean_change_pct) ? item.mean_change_pct.toFixed(5) + "%" : "—"),
+              cell([item.positive_samples ?? 0, item.negative_samples ?? 0, item.flat_samples ?? 0].join(" / ")),
+              cell(item.bias_aligned_pct === null || item.bias_aligned_pct === undefined ? "N/A" : item.bias_aligned_pct + "% (" + (item.bias_scored_samples ?? 0) + ")")
+            );
+            row.title = item.sample_warning || "";
+            eventLabBody.appendChild(row);
+          });
+        }
+        (payload.limitations || []).forEach(message => {
+          const li = document.createElement("li");
+          li.textContent = message;
+          limitationsList.appendChild(li);
+        });
+        eventLabStatus.textContent = results.length + " grup statistik · " + (payload.observations ?? 0) + " observasi diperiksa. Arah median bukan sinyal entry.";
+      } catch (_) {
+        eventLabStatus.textContent = "Statistik gagal dimuat. Periksa koneksi server lalu coba lagi.";
+        const row = document.createElement("tr");
+        const error = cell("Data tidak tersedia.");
+        error.colSpan = 7;
+        row.appendChild(error);
+        eventLabBody.replaceChildren(row);
+      } finally {
+        eventLabButton.disabled = false;
+      }
+    };
+    eventLabButton.addEventListener("click", showEventLab);
+    eventSelect.addEventListener("change", showEventLab);
+    instrumentSelect.addEventListener("change", showEventLab);
+  }
+
   // ---------- Kalender ekonomi AS (jadwal resmi BLS) ----------
   const calendarPanel = document.getElementById("calendar-panel");
   if (calendarPanel) initCalendar(calendarPanel);
