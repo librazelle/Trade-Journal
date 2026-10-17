@@ -10,7 +10,7 @@ RULES = [
      "Inflasi", ["XAUUSD", "NASDAQ100", "S&P500", "DXY", "US10Y"]),
     (("nonfarm payroll", "employment situation", "unemployment rate", "payroll employment", "jobs report", "jobless claims", "labour market", "labor market", "wage growth"),
      "Data tenaga kerja", ["XAUUSD", "NASDAQ100", "S&P500", "DXY", "US10Y"]),
-    (("gross domestic product", " gdp", "economic growth", "economic slowdown", "recession", "economic outlook"),
+    (("gross domestic product", " gdp", "economic indicators", "economic data", "economic report", "economic growth", "economic slowdown", "recession", "economic outlook", "retail sales", "consumer spending", "personal income", "manufacturing activity", "pmi", "ism"),
      "Pertumbuhan ekonomi", ["NASDAQ100", "S&P500", "XAUUSD", "DXY", "US10Y"]),
     (("treasury", "bond yield", "bond yields", "government bond", "government bonds", "10-year yield", "10 year yield", "yield curve", "bond auction"),
      "Obligasi / yield", ["XAUUSD", "NASDAQ100", "S&P500", "DXY", "US10Y"]),
