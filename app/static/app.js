@@ -80,12 +80,12 @@
       .map(el => el.textContent || "").join(" ");
     const haystack = (title + " " + summary + " " + tags).toLowerCase();
     const categories = new Set();
-    if (/fomc|federal reserve|\\bfed\\b|powell|interest rate|rate decision|monetary policy|central bank|policy rate/.test(haystack)) categories.add("fed");
-    if (/inflation|consumer price|\\bcpi\\b|\\bppi\\b|\\bpce\\b|price index|cost of living/.test(haystack)) categories.add("inflation");
+    if (/fomc|federal reserve|\bfed\b|powell|interest rate|rate decision|monetary policy|central bank|policy rate/.test(haystack)) categories.add("fed");
+    if (/inflation|consumer price|\bcpi\b|\bppi\b|\bpce\b|price index|cost of living/.test(haystack)) categories.add("inflation");
     if (/nonfarm|payroll|unemployment|employment|job openings|labor market|labour market|wage|jobless claims/.test(haystack)) categories.add("jobs");
-    if (/\\bgdp\\b|gross domestic|productivity|business activity|consumer spending|retail sales|economic growth|recession|economic outlook|manufacturing/.test(haystack)) categories.add("economy");
-    if (/geopolit|\\bwar\\b|sanction|tariff|trade war|iran|israel|ukraine|russia|missile|conflict|invasion|ceasefire|military|diplomatic|election|white house|china-us relations/.test(haystack)) categories.add("geopolitics");
-    if (/\\boil\\b|crude|opec|energy|natural gas|brent|wti|petroleum|fuel prices|electricity prices/.test(haystack)) categories.add("energy");
+    if (/\bgdp\b|gross domestic|productivity|business activity|consumer spending|retail sales|economic growth|recession|economic outlook|manufacturing/.test(haystack)) categories.add("economy");
+    if (/geopolit|\bwar\b|sanction|tariff|trade war|iran|israel|ukraine|russia|missile|conflict|invasion|ceasefire|military|diplomatic|election|white house|china-us relations/.test(haystack)) categories.add("geopolitics");
+    if (/\boil\b|crude|opec|energy|natural gas|brent|wti|petroleum|fuel prices|electricity prices/.test(haystack)) categories.add("energy");
     if (!categories.size) categories.add("other");
     return categories;
   };
