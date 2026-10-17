@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
 from email.utils import format_datetime
 
+import asyncio
+
 import httpx
-import pytest
 
 from app.connectors.media_rss import (
     BBCBusinessRSSConnector,
@@ -36,8 +37,7 @@ def test_published_time_is_utc_and_missing_time_is_not_fabricated():
     assert _published_utc({}) is None
 
 
-@pytest.mark.asyncio
-async def test_fetch_parses_feed_and_marks_media_as_reported():
+def test_fetch_parses_feed_and_marks_media_as_reported():
     published = format_datetime(datetime(2026, 10, 17, 1, 2, tzinfo=timezone.utc))
     xml = f"""<?xml version="1.0"?>
     <rss version="2.0"><channel><title>BBC World</title>
@@ -50,9 +50,12 @@ async def test_fetch_parses_feed_and_marks_media_as_reported():
     async def handler(request):
         return httpx.Response(200, text=xml, request=request)
 
-    connector = BBCWorldRSSConnector()
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        items = await connector.fetch(client)
+    async def run_fetch():
+        connector = BBCWorldRSSConnector()
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            return await connector.fetch(client)
+
+    items = asyncio.run(run_fetch())
 
     assert len(items) == 1
     assert items[0].external_id == "bbc-world:story-1"
