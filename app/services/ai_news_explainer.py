@@ -29,9 +29,9 @@ async def explain_news_with_ai(title: str, source: str, summary: str, url: str |
             {
                 "role": "user",
                 "content": (
-                    f"Sumber: {source}\\nJudul: {title}\\n"
-                    f"Ringkasan yang tersedia: {summary or '[Tidak ada ringkasan dari sumber]'}\\n"
-                    f"URL sumber: {url or '[Tidak tersedia]'}\\n\\n"
+                    f"Sumber: {source}\nJudul: {title}\n"
+                    f"Ringkasan yang tersedia: {summary or '[Tidak ada ringkasan dari sumber]'}\n"
+                    f"URL sumber: {url or '[Tidak tersedia]'}\n\n"
                     "Uraikan berita ini dengan bahasa sangat mudah dipahami orang awam. "
                     "Jangan mengklaim telah membaca isi artikel penuh jika yang tersedia hanya judul/ringkasan."
                 ),
@@ -61,7 +61,7 @@ async def explain_news_with_ai(title: str, source: str, summary: str, url: str |
         if isinstance(content, str):
             text = content.strip()
         elif isinstance(content, list):
-            text = "\\n".join(
+            text = "\n".join(
                 item.get("text", "") for item in content
                 if isinstance(item, dict) and item.get("type") == "text"
             ).strip()
