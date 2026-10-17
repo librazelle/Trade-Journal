@@ -322,8 +322,10 @@ async def explain_news_endpoint(news_id: int, request: Request):
             "SELECT explanation, model FROM news_ai_summaries WHERE news_id = ?",
             (news_id,),
         ).fetchone()
-    if cached:
-        return {"news_id": news_id, "explanation": cached["explanation"], "cached": True, "model": cached["model"]}
+    from .services.ai_news_explainer import SUMMARY_VERSION
+    cache_model = f"{settings.gemini_model}:{SUMMARY_VERSION}"
+    if cached and cached["model"] == cache_model:
+        return {"news_id": news_id, "explanation": cached["explanation"], "cached": True, "model": settings.gemini_model}
     if not settings.gemini_api_key:
         raise HTTPException(503, "Fitur AI belum dikonfigurasi. Admin perlu mengisi GEMINI_API_KEY di environment server.")
 
@@ -378,9 +380,9 @@ async def explain_news_endpoint(news_id: int, request: Request):
                VALUES (?, ?, ?, ?)
                ON CONFLICT(news_id) DO UPDATE SET
                  explanation=excluded.explanation, model=excluded.model, created_at=excluded.created_at""",
-            (news_id, explanation, settings.ai_model, created_at),
+            (news_id, explanation, cache_model, created_at),
         )
-    return {"news_id": news_id, "explanation": explanation, "cached": False, "model": settings.ai_model}
+    return {"news_id": news_id, "explanation": explanation, "cached": False, "model": settings.gemini_model}
 
 
 @app.get("/stream/news")
