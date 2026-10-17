@@ -20,6 +20,7 @@
     const tradeCount = panel.querySelector("#local-trade-count");
     const reactionCount = panel.querySelector("#local-reaction-count");
     const exportButton = panel.querySelector("#local-backup-export");
+    const migrateButton = panel.querySelector("#local-migrate-server");
     const importButton = panel.querySelector("#local-backup-import");
     const importFile = panel.querySelector("#local-backup-file");
     const DB_NAME = "trade-lens-local";
@@ -135,6 +136,49 @@
         }
       });
     });
+    migrateButton.addEventListener("click", async () => {
+      migrateButton.disabled = true;
+      status.textContent = "Mengambil jurnal server…";
+      try {
+        const response = await fetch("/api/local-migration-data", { cache: "no-store" });
+        if (!response.ok) throw new Error("Server mengembalikan HTTP " + response.status);
+        const payload = await response.json();
+        let added = 0;
+        for (const row of (payload.trades || [])) {
+          await putRecord({
+            uid: "server-trade-" + row.id,
+            kind: "trade",
+            savedAt: row.created_at || new Date().toISOString(),
+            data: {
+              server_id: row.id, instrument: row.instrument, direction: row.direction,
+              entry_price: row.entry_price, entry_time: row.entry_time, lot: row.lot,
+              sl: row.sl, tp: row.tp, note: row.note,
+              context_json: row.context_json, econ_context_json: row.econ_context_json
+            }
+          });
+          added++;
+        }
+        for (const row of (payload.reactions || [])) {
+          await putRecord({
+            uid: "server-reaction-" + row.id,
+            kind: "reaction",
+            savedAt: row.created_at || new Date().toISOString(),
+            data: {
+              server_id: row.id, event_type: row.event_type, instrument: row.instrument,
+              release_time: row.release_time, expected_direction: row.expected_direction,
+              price_before: row.price_before, price_after_15m: row.price_after_15m, note: row.note
+            }
+          });
+          added++;
+        }
+        await renderRecords();
+        status.textContent = added + " catatan server disalin ke database lokal. Data server asli tidak dihapus; ekspor backup sekarang.";
+      } catch (error) {
+        status.textContent = "Salin dari server gagal: " + (error.message || "error");
+      } finally {
+        migrateButton.disabled = false;
+      }
+    });
     exportButton.addEventListener("click", () => backup().catch(error => { status.textContent = "Backup gagal: " + error.message; }));
     importButton.addEventListener("click", () => importFile.click());
     importFile.addEventListener("change", async () => {
@@ -145,8 +189,16 @@
     });
     openDb().then(async database => {
       db = database;
+      let persistence = "browser-managed";
+      try {
+        if (navigator.storage && navigator.storage.persist) {
+          persistence = await navigator.storage.persist() ? "persistent" : "browser-managed";
+        }
+      } catch (_) {}
       await renderRecords();
-      status.textContent = "Database lokal aktif di browser/perangkat ini.";
+      status.textContent = persistence === "persistent"
+        ? "Database lokal aktif; browser memberi izin penyimpanan persisten."
+        : "Database lokal aktif; ekspor backup rutin karena browser masih dapat menghapus data situs.";
     }).catch(error => {
       status.textContent = "Database lokal tidak tersedia: " + (error.message || "error");
       exportButton.disabled = true;

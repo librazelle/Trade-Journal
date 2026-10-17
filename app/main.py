@@ -115,6 +115,28 @@ def dashboard(request: Request, macro_import: str | None = None):
     )
 
 
+@app.get("/api/local-migration-data")
+def local_migration_data():
+    """Export existing server journal rows for an explicit copy into this browser's local database."""
+    with get_db() as db:
+        trades = db.execute(
+            """SELECT id, instrument, direction, entry_price, entry_time, lot, sl, tp,
+                      note, context_json, econ_context_json, created_at
+               FROM trades ORDER BY entry_time DESC"""
+        ).fetchall()
+        reactions = db.execute(
+            """SELECT id, event_type, instrument, release_time, expected_direction,
+                      price_before, price_after_15m, note, created_at
+               FROM macro_reactions ORDER BY release_time DESC"""
+        ).fetchall()
+    return {
+        "source": "server_database",
+        "trades": [dict(row) for row in trades],
+        "reactions": [dict(row) for row in reactions],
+        "warning": "Salinan ini tidak menghapus data server. Backup JSON tetap disarankan.",
+    }
+
+
 @app.get("/trades/{trade_id}", response_class=HTMLResponse)
 def trade_detail(request: Request, trade_id: int):
     with get_db() as db:
