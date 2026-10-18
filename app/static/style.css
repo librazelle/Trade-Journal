@@ -1377,6 +1377,14 @@ button[data-market-symbol].active { color:var(--ink); border-color:var(--ink); }
     font-size: 10px;
     line-height: 1.2;
   }
+  #market-chart-dock .chart-dock-frame {
+    display: block;
+    width: 100%;
+    height: 112px;
+    border: 0;
+    border-radius: 5px;
+    background: var(--bg);
+  }
   #market-chart-dock .chart-dock-heading strong {
     color: var(--ink);
     font-weight: 600;
@@ -1393,16 +1401,12 @@ button[data-market-symbol].active { color:var(--ink); border-color:var(--ink); }
     font-size: 16px;
     line-height: 1;
   }
-  body.chart-docked #market-chart {
-    width: 100%;
-    height: 132px !important;
-    min-height: 132px !important;
-    max-height: 132px !important;
-    border-radius: 5px;
+  body.chart-docked #market-chart-dock .chart-dock-frame {
+    height: 112px;
   }
 }
 @media (max-width: 380px) {
-  body.chart-docked #market-chart { height: 116px !important; min-height: 116px !important; max-height: 116px !important; }
+  body.chart-docked #market-chart-dock .chart-dock-frame { height: 100px; }
 }
 @media (min-width: 1100px) {
   #market-chart-dock { display: none !important; }
