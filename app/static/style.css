@@ -1039,3 +1039,41 @@ button[data-market-symbol].active { color:var(--ink); border-color:var(--ink); }
   .clock-time-card small { font-size: 10px; }
   .session-countdown { font-size: 14px; }
 }
+
+/* Chart-first mobile workspace and compact session menu */
+.topbar { position: relative; z-index: 30; display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.topbar > .brand { flex: 0 0 auto; align-self: center; }
+.topbar .toolbar { display: flex; flex: 1 1 100%; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.session-menu { position: relative; margin-left: auto; }
+.session-menu > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.session-menu > summary::-webkit-details-marker { display: none; }
+.session-menu-popover { position: absolute; z-index: 50; top: calc(100% + 8px); right: 0; width: min(560px, calc(100vw - 24px)); max-height: min(75vh, 680px); overflow: auto; padding: 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); box-shadow: 0 16px 48px rgba(0,0,0,.45); }
+.session-menu .market-clock { display: block; width: 100%; }
+.session-menu .clock-options { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); }
+.market-monitor-panel { padding-top: 8px; }
+.market-monitor-heading > div { max-width: 100%; }
+.market-monitor-heading p { max-width: 58ch; }
+.market-chart { min-height: 420px; }
+@media (max-width: 600px) {
+  .topbar { padding: 10px 12px; gap: 8px; }
+  .topbar > .brand { font-size: 16px; }
+  .topbar .toolbar { flex: 1 1 auto; width: auto; }
+  .topbar .tz { display: none; }
+  .session-menu > summary { padding: 8px 9px; font-size: 12px; }
+  .session-menu-popover { position: fixed; top: 112px; right: 10px; width: calc(100vw - 20px); max-height: calc(100dvh - 140px); }
+  .session-menu .clock-pair { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; }
+  .session-menu .clock-time-card { padding: 9px; }
+  .market-monitor-panel { padding: 6px 0 14px; }
+  .market-monitor-heading { gap: 6px; }
+  .market-monitor-heading h2 { font-size: 19px; }
+  .market-monitor-heading p { font-size: 12px; line-height: 1.4; }
+  .market-monitor-controls { justify-content: flex-start; gap: 8px; }
+  .market-symbol-tabs { width: 100%; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+  .market-symbol-tabs button { padding: 10px 5px; font-size: 13px; }
+  .market-monitor-controls label { flex: 1 1 auto; }
+  .market-monitor-controls select { max-width: 100%; }
+  #market-refresh { width: auto; min-width: 90px; padding: 10px 14px; }
+  .market-price-row { margin: 8px 0; }
+  .market-chart { min-height: 58vh; height: 58vh; max-height: 640px; }
+  .market-data-meta, .market-disclaimer, .market-chart-attribution { font-size: 11px; }
+}
