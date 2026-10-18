@@ -97,7 +97,7 @@
     </section>
 
     <section class="section macro-study">
-      <h2>Statistik reaksi news <span class="muted">· catatan historis manual</span></h2>
+      <h2>News Impact Timeline <span class="muted">· reaksi harga bertahap</span></h2>
       <p class="muted">Catat bias sebelum rilis, harga sebelum rilis, dan harga 15 menit sesudahnya. Win rate hanya mengukur apakah arah 15 menit sesuai bias yang dicatat, bukan profitabilitas trade. Jangan isi bias setelah melihat hasil.</p>
       {% if macro_import_message %}<p class="notice">{{ macro_import_message }}</p>{% endif %}
 
@@ -144,7 +144,7 @@
           </div>
           <label>Harga sebelum rilis <input name="price_before" inputmode="decimal" placeholder="contoh: 2650.50" required></label>
         </div>
-        <label>Harga 15 menit setelah rilis <input name="price_after_15m" inputmode="decimal" placeholder="contoh: 2655.20" required></label>
+        <div class="fields-2 timeline-price-fields">\n          <label>Harga +1 menit <input name="price_after_1m" inputmode="decimal" placeholder="Opsional"></label>\n          <label>Harga +5 menit <input name="price_after_5m" inputmode="decimal" placeholder="Opsional"></label>\n          <label>Harga +15 menit <input name="price_after_15m" inputmode="decimal" placeholder="contoh: 2655.20" required></label>\n          <label>Harga +60 menit <input name="price_after_60m" inputmode="decimal" placeholder="Opsional"></label>\n        </div>\n        <p class="muted">Isi harga pada horizon yang tersedia. Jangan mengisi harga yang belum terjadi atau tidak bisa diverifikasi.</p>
         <label>Catatan / alasan bias <textarea name="note" rows="2"></textarea></label>
         <button type="submit">Simpan reaksi event</button>
       </form>
@@ -185,10 +185,17 @@
       </section>
 
       {% if macro_reactions %}
-      <h3 class="section">Riwayat reaksi terbaru</h3>
-      <ul class="trades">{% for r in macro_reactions %}
-        <li><div class="reaction-row"><span>{{ r.event_type }} · {{ r.instrument }}</span><span>{{ r.expected_direction|capitalize }} bias</span><span>{{ '%.4f'|format(r.price_before) }} → {{ '%.4f'|format(r.price_after_15m) }}</span></div></li>
-      {% endfor %}</ul>
+      <h3 class="section">Riwayat News Impact Timeline</h3>
+      <div class="table-scroll"><table class="reaction-table"><thead><tr><th>Event / instrumen</th><th>Sebelum</th><th>+1m</th><th>+5m</th><th>+15m</th><th>+60m</th></tr></thead><tbody>
+      {% for r in macro_reactions %}
+      <tr><td>{{ r.event_type }} · {{ r.instrument }}<br><small>{{ r.release_time|to_local }} · bias {{ r.expected_direction }}</small></td>
+      <td>{{ '%.4f'|format(r.price_before) }}</td>
+      <td>{{ '%.4f'|format(r.price_after_1m) if r.price_after_1m is not none else '—' }}</td>
+      <td>{{ '%.4f'|format(r.price_after_5m) if r.price_after_5m is not none else '—' }}</td>
+      <td>{{ '%.4f'|format(r.price_after_15m) }}</td>
+      <td>{{ '%.4f'|format(r.price_after_60m) if r.price_after_60m is not none else '—' }}</td></tr>
+      {% endfor %}</tbody></table></div>
+      <p class="muted">Observasi manual. Tanda — berarti data tidak tersedia, bukan harga nol.</p>
       {% endif %}
     </section>
 
