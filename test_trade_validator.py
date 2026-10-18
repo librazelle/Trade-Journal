@@ -44,3 +44,14 @@ def test_missing_trigger_requires_review():
 def test_conflicting_htf_bias_requires_review():
     result = validate_setup(**base(htf_bias="bearish"))
     assert result["status"] == "REVIEW REQUIRED"
+
+
+def test_invalid_minimum_rr_blocks():
+    result = validate_setup(**base(rr_min="not-a-number"))
+    assert result["status"] == "BLOCKED"
+    assert any("Minimum R:R" in item for item in result["blockers"])
+
+
+def test_zero_minimum_rr_blocks():
+    result = validate_setup(**base(rr_min="0"))
+    assert result["status"] == "BLOCKED"
