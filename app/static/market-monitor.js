@@ -80,55 +80,93 @@
     window.setTimeout(() => { refresh.disabled = false; }, 10000);
   }
 
-  // Mobile chart dock: move the same iframe into a compact floating panel
-  // after the chart has been scrolled away. A stage placeholder preserves layout.
+  // Mobile dock uses a dedicated compact TradingView embed.
+  // Do not move/resize the main iframe: TradingView keeps its full toolbar after
+  // a CSS resize, which makes the previous dock consume too much screen space.
   const chartStage = document.getElementById("market-chart-stage");
-  if (chartStage && chartHost) {
-    const dock = document.createElement("aside");
+  let dock = null;
+  let dockFrame = null;
+  let docked = false;
+  let framePending = false;
+  const mobileView = window.matchMedia("(max-width: 1099px)");
+
+  function buildDockChartUrl() {
+    const selected = symbols[symbol];
+    const params = new URLSearchParams({
+      frameElementId: "trade_lens_mobile_chart_dock",
+      symbol: selected.symbol,
+      interval: intervals[timeframe.value] || "15",
+      theme: "dark",
+      style: "1",
+      timezone: "Asia/Jakarta",
+      locale: "id",
+      hide_top_toolbar: "1",
+      hide_side_toolbar: "1",
+      hide_legend: "1",
+      hide_bottom_toolbar: "1",
+      withdateranges: "0",
+      allow_symbol_change: "0",
+      saveimage: "0",
+      hideideas: "1"
+    });
+    return "https://www.tradingview.com/widgetembed/?" + params.toString();
+  }
+
+  function createDock() {
+    if (dock) return;
+    dock = document.createElement("aside");
     dock.id = "market-chart-dock";
     dock.setAttribute("aria-label", "Chart market ringkas");
-    dock.innerHTML = '<div class="chart-dock-heading"><span><strong>Chart aktif</strong> · ketuk × untuk kembali ke posisi chart</span><button type="button" class="chart-dock-close" aria-label="Tutup chart ringkas">×</button></div>';
+    dock.innerHTML = '<div class="chart-dock-heading"><span><strong>Chart ringkas</strong> · <span class="chart-dock-symbol">Nasdaq 100</span></span><button type="button" class="chart-dock-close" aria-label="Tutup chart ringkas">×</button></div><iframe class="chart-dock-frame" title="Chart ringkas instrumen terpilih" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>';
     document.body.appendChild(dock);
-    const closeDock = dock.querySelector(".chart-dock-close");
-    let docked = false;
-    let framePending = false;
-    const mobileView = window.matchMedia("(max-width: 1099px)");
-    function setDock(next) {
-      if (next === docked) return;
-      docked = next;
-      if (docked) {
-        chartStage.style.height = chartHost.getBoundingClientRect().height + "px";
-        dock.appendChild(chartHost);
-      } else {
-        chartStage.appendChild(chartHost);
-        chartStage.style.height = "";
-      }
-      document.body.classList.toggle("chart-docked", docked);
+    dockFrame = dock.querySelector("iframe");
+    dock.querySelector(".chart-dock-close").addEventListener("click", () => {
+      setDock(false);
+      chartStage.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function updateDockChart() {
+    if (!dockFrame) return;
+    const selected = symbols[symbol];
+    dock.querySelector(".chart-dock-symbol").textContent = selected.label;
+    dockFrame.src = buildDockChartUrl();
+  }
+
+  function setDock(next) {
+    if (next === docked) return;
+    docked = next;
+    if (docked) {
+      createDock();
+      updateDockChart();
+    } else if (dockFrame) {
+      dockFrame.removeAttribute("src");
     }
-    function updateDock() {
-      framePending = false;
-      if (!mobileView.matches) {
-        setDock(false);
-        return;
-      }
-      const rect = chartStage.getBoundingClientRect();
-      // Wait until the chart is almost entirely above the viewport.
-      if (!docked && rect.bottom < 90) setDock(true);
-      else if (docked && rect.top > 90) setDock(false);
+    document.body.classList.toggle("chart-docked", docked);
+  }
+
+  function updateDock() {
+    framePending = false;
+    if (!mobileView.matches) {
+      setDock(false);
+      return;
     }
-    function onScrollOrResize() {
-      if (framePending) return;
-      framePending = true;
-      window.requestAnimationFrame(updateDock);
-    }
+    const rect = chartStage.getBoundingClientRect();
+    if (!docked && rect.bottom < 70) setDock(true);
+    else if (docked && rect.top > 70) setDock(false);
+  }
+
+  function onScrollOrResize() {
+    if (framePending) return;
+    framePending = true;
+    window.requestAnimationFrame(updateDock);
+  }
+
+  if (chartStage) {
     window.addEventListener("scroll", onScrollOrResize, { passive: true });
     window.addEventListener("resize", onScrollOrResize, { passive: true });
     if (mobileView.addEventListener) mobileView.addEventListener("change", onScrollOrResize);
     else if (mobileView.addListener) mobileView.addListener(onScrollOrResize);
-    closeDock.addEventListener("click", () => {
-      setDock(false);
-      chartStage.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   }
 
   tabs.forEach(button => button.addEventListener("click", () => {
@@ -139,8 +177,12 @@
       tab.setAttribute("aria-pressed", String(active));
     });
     load();
+    if (docked) updateDockChart();
   }));
-  timeframe.addEventListener("change", load);
+  timeframe.addEventListener("change", () => {
+    load();
+    if (docked) updateDockChart();
+  });
   refresh.addEventListener("click", load);
   load();
 })();
