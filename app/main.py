@@ -56,7 +56,7 @@ app.include_router(event_lab_router)
 
 MARKET_SYMBOLS = {
     "NASDAQ100": {"ticker": "^NDX", "label": "Nasdaq 100", "source": "Yahoo Finance chart endpoint"},
-    "XAUUSD": {"ticker": "XAUUSD=X", "label": "Gold spot (XAU/USD)", "source": "Yahoo Finance chart endpoint"},
+    "XAUUSD": {"ticker": "GC=F", "label": "Gold futures proxy (not broker spot XAU/USD)", "source": "Yahoo Finance chart endpoint"},
     "SP500": {"ticker": "^GSPC", "label": "S&P 500", "source": "Yahoo Finance chart endpoint"},
 }
 
