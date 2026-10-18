@@ -239,6 +239,9 @@ def create_macro_reaction(
     expected_direction: str = Form(...),
     price_before: str = Form(...),
     price_after_15m: str = Form(...),
+    price_after_1m: str = Form(""),
+    price_after_5m: str = Form(""),
+    price_after_60m: str = Form(""),
     note: str = Form(""),
 ):
     event_type = event_type.strip()
@@ -255,17 +258,23 @@ def create_macro_reaction(
         raise HTTPException(400, "Bias harus naik atau turun")
     before = _parse_float(price_before, "Harga sebelum rilis", required=True)
     after = _parse_float(price_after_15m, "Harga 15 menit setelah rilis", required=True)
-    if before <= 0 or after <= 0:
+    after_1m = _parse_float(price_after_1m, "Harga 1 menit setelah rilis")
+    after_5m = _parse_float(price_after_5m, "Harga 5 menit setelah rilis")
+    after_60m = _parse_float(price_after_60m, "Harga 60 menit setelah rilis")
+    prices = [before, after, after_1m, after_5m, after_60m]
+    if any(value is not None and value <= 0 for value in prices):
         raise HTTPException(400, "Harga harus lebih dari nol")
     release_utc = _local_to_utc(release_time)
     with get_db() as db:
         db.execute(
             """INSERT INTO macro_reactions
                (event_type, instrument, release_time, expected_direction,
-                price_before, price_after_15m, note, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                price_before, price_after_1m, price_after_5m, price_after_15m,
+                price_after_60m, note, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (event_type, instrument, fmt_utc(release_utc), expected_direction,
-             before, after, note.strip(), fmt_utc(datetime.now(timezone.utc))),
+             before, after_1m, after_5m, after, after_60m, note.strip(),
+             fmt_utc(datetime.now(timezone.utc))),
         )
     return RedirectResponse("/", status_code=303)
 
