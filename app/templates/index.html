@@ -20,14 +20,15 @@
           <option value="Nonfarm Payrolls"><option value="Unemployment Rate"><option value="Retail Sales"><option value="GDP"><option value="FOMC rate decision">
         </datalist>
       </label>
-      <div class="fields-3">
+      <div class="fields-2 expectation-values">
         <label>Actual<input name="actual" inputmode="decimal" placeholder="Contoh: 3.1%"></label>
         <label>Forecast<input name="forecast" inputmode="decimal" placeholder="Kosong jika tidak ada"></label>
-        <label>Previous<input name="previous" inputmode="decimal" placeholder="Contoh: 3.4%"></label>
       </div>
+      <label class="expectation-previous">Previous<input name="previous" inputmode="decimal" placeholder="Contoh: 3.4%"></label>
       <button type="submit">Analisis kejutan data</button>
     </form>
-    <div id="news-expectation-result" class="expectation-result" role="status" aria-live="polite"></div>
+    <p id="news-expectation-empty" class="muted expectation-empty">Masukkan data lalu tekan “Analisis kejutan data”. Hasil baru akan muncul di sini.</p>
+    <div id="news-expectation-result" class="expectation-result" role="status" aria-live="polite" hidden></div>
   </section>
 
   <div class="pane" data-tab="journal">

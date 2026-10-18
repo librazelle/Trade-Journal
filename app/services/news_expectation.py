@@ -6,13 +6,14 @@ from confirmed market direction.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
 
 EVENT_RULES = {
-    "cpi": {"terms": ("cpi", "consumer price index", "core cpi"), "higher": "hawkish"},
+    "core_cpi": {"terms": ("core cpi", "core consumer price index"), "higher": "hawkish"},
+    "cpi": {"terms": ("cpi", "consumer price index"), "higher": "hawkish"},
     "ppi": {"terms": ("ppi", "producer price index"), "higher": "hawkish"},
+    "core_pce": {"terms": ("core pce", "core personal consumption expenditures"), "higher": "hawkish"},
     "pce": {"terms": ("pce", "personal consumption expenditures"), "higher": "hawkish"},
     "nfp": {"terms": ("nonfarm payroll", "employment situation", "jobs report", "payrolls"), "higher": "hawkish"},
     "unemployment": {"terms": ("unemployment rate", "jobless rate"), "higher": "dovish"},
@@ -78,6 +79,7 @@ def analyze_release(name: str, actual: Any = None, forecast: Any = None, previou
 
     return {
         "event_type": event_type,
+        "event_name": (str(name).strip() if name and str(name).strip() else None),
         "actual": actual,
         "forecast": forecast,
         "previous": previous,
