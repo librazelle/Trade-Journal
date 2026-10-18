@@ -96,9 +96,14 @@
     function setDock(next) {
       if (next === docked) return;
       docked = next;
+      if (docked) {
+        chartStage.style.height = chartHost.getBoundingClientRect().height + "px";
+        dock.appendChild(chartHost);
+      } else {
+        chartStage.appendChild(chartHost);
+        chartStage.style.height = "";
+      }
       document.body.classList.toggle("chart-docked", docked);
-      if (docked) dock.appendChild(chartHost);
-      else chartStage.appendChild(chartHost);
     }
     function updateDock() {
       framePending = false;
