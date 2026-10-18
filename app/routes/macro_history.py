@@ -26,7 +26,7 @@ REQUIRED_COLUMNS = {
 @router.get("/macro-reactions/template.csv")
 def macro_history_template():
     content = (
-        "event_type,instrument,release_time,expected_direction,price_before,price_after_15m,note\n"
+        "event_type,instrument,release_time,expected_direction,price_before,price_after_1m,price_after_5m,price_after_15m,price_after_60m,note\n"
     )
     return Response(
         content=content,
@@ -77,6 +77,17 @@ async def import_macro_history(file: UploadFile = File(...)):
                 release_time = fmt_utc(release_dt.astimezone(timezone.utc))
                 before = float((row.get("price_before") or "").strip().replace(",", "."))
                 after = float((row.get("price_after_15m") or "").strip().replace(",", "."))
+                def optional_price(column):
+                    raw = (row.get(column) or "").strip()
+                    if not raw:
+                        return None
+                    value = float(raw.replace(",", "."))
+                    if not math.isfinite(value) or value <= 0:
+                        raise ValueError(f"{column} harus berupa angka positif yang valid")
+                    return value
+                after_1m = optional_price("price_after_1m")
+                after_5m = optional_price("price_after_5m")
+                after_60m = optional_price("price_after_60m")
                 if not math.isfinite(before) or not math.isfinite(after):
                     raise ValueError("harga harus berupa angka finite yang valid")
                 if before <= 0 or after <= 0:
@@ -93,10 +104,11 @@ async def import_macro_history(file: UploadFile = File(...)):
                 db.execute(
                     """INSERT INTO macro_reactions
                        (event_type, instrument, release_time, expected_direction,
-                        price_before, price_after_15m, note, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (event, instrument, release_time, direction, before, after, note,
-                     fmt_utc(datetime.now(timezone.utc))),
+                        price_before, price_after_1m, price_after_5m, price_after_15m,
+                        price_after_60m, note, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (event, instrument, release_time, direction, before, after_1m, after_5m,
+                     after, after_60m, note, fmt_utc(datetime.now(timezone.utc))),
                 )
                 inserted += 1
             except (ValueError, TypeError) as exc:
