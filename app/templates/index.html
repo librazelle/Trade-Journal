@@ -1,12 +1,10 @@
 {% extends "base.html" %}
 {% block page_scripts %}<script src="/static/market-monitor.js?v=20261018-tv2" defer></script>{% endblock %}
 {% block content %}
-<div class="layout" data-active-tab="calendar">
-
-  <section class="market-monitor-panel" id="market-monitor" data-tab="market">
+  <section class="market-monitor-panel" id="market-monitor">
     <div class="market-monitor-heading">
       <div><h2>Market Monitor <span class="muted">· Nasdaq 100 / XAUUSD / S&amp;P 500</span></h2>
-      <p class="muted">Chart publik untuk pemantauan. Feed ini tidak dijamin realtime dan bukan sumber eksekusi broker.</p></div>
+      <p class="muted">Chart utama tetap tersedia saat lu buka berita, kalender, jurnal, atau AI Assist. Data mengikuti TradingView dan tidak dijamin realtime.</p></div>
       <span id="market-feed-status" class="market-feed-status">MENYIAPKAN</span>
     </div>
     <div class="market-monitor-controls">
@@ -24,6 +22,8 @@
     <p class="muted market-disclaimer" id="market-disclaimer">Harga dapat tertunda atau berbeda dari broker. Status feed akan tetap ditandai tidak terverifikasi sebagai realtime.</p>
     <p class="market-chart-attribution">Interactive market chart provided by <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView</a>.</p>
   </section>
+
+<div class="layout" data-active-tab="calendar">
 
   <section class="calendar-panel" id="calendar-panel" data-tab="calendar">
     <h2>Kalender ekonomi AS <span id="calendar-status" class="muted">memuat jadwal BLS</span></h2>
@@ -290,11 +290,12 @@
       <p class="muted">Pilih tingkat bahasa untuk berita di bawah. Pilihan tersimpan di browser.</p>
     </div>
     <section class="priority-news-panel">
-      <h2>Berita berdampak tinggi <span class="muted">· watchlist makro</span></h2>
-      <p class="muted">Peringkat heuristik dari judul, skor dampak, dan sumber resmi. Instrumen terkait bukan jaminan arah atau korelasi statistik.</p>
+      <h2>Berita relevan untuk <span id="news-pair-label">Nasdaq 100</span> <span class="muted">· watchlist makro</span></h2>
+      <p class="muted">Daftar ini difilter dari instrumen terkait yang ditandai sumber berita. Relevansi bukan jaminan arah atau korelasi statistik.</p>
+      <p id="news-pair-empty" class="empty" hidden>Belum ada berita prioritas yang ditandai relevan untuk pair ini. Berita terbaru umum tetap tersedia di bagian bawah.</p>
       {% if priority_news %}
         {% for item in priority_news %}
-        <article class="priority-news-item">
+        <article class="priority-news-item" data-instruments="{{ item.instruments|join(',')|lower }}">
           <div class="priority-news-meta">{{ item.event_type }} · skor dampak {{ item.impact }}{% if item.source %} · {{ item.source }}{% endif %}</div>
           <h3>{% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</h3>
           <div class="instrument-chips">
