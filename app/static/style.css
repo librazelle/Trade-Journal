@@ -67,7 +67,7 @@ h3 { font: 600 17px/1.35 var(--serif); margin: 4px 0; }
   font-variant-numeric: tabular-nums;
 }
 .fields-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.fields-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.fields-3 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 
 button {
   font: 600 15px var(--sans);
