@@ -957,3 +957,22 @@ button:active { transform: translateY(1px); }
   .expectation-panel .form label { min-width: 0; }
   .expectation-panel .form input { padding: 10px 9px; }
 }
+
+
+/* Independent trade validator */
+.trade-validator-panel { min-width: 0; }
+.trade-validator-panel .form input, .trade-validator-panel .form select { min-width: 0; }
+.trade-validator-panel .check-row { display: flex; align-items: flex-start; gap: 9px; }
+.trade-validator-panel .check-row input { width: auto; margin-top: 4px; }
+.validator-result[hidden], #trade-validator-empty[hidden] { display: none !important; }
+.validator-result { border-left: 3px solid var(--rule); padding: 12px; overflow-wrap: anywhere; }
+.validator-result[data-status="BLOCKED"] { border-left-color: var(--short); }
+.validator-result[data-status="REVIEW REQUIRED"] { border-left-color: var(--rumor); }
+.validator-result[data-status="READY FOR YOUR DECISION"] { border-left-color: var(--long); }
+.validator-result h3 { margin-top: 0; }
+@media (max-width: 600px) {
+  .trade-validator-panel { padding: 12px; }
+  .trade-validator-panel .fields-3 { grid-template-columns: minmax(0, 1fr); }
+  .trade-validator-panel .fields-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .trade-validator-panel input, .trade-validator-panel select { width: 100%; }
+}

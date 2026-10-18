@@ -927,4 +927,51 @@
     applyReadingMode(currentReadingMode);
     applyNewsFilter();
   });
+
+  // ---------- Independent pre-trade discipline validator ----------
+  const validatorForm = document.getElementById("trade-validator-form");
+  const validatorResult = document.getElementById("trade-validator-result");
+  const validatorEmpty = document.getElementById("trade-validator-empty");
+  if (validatorForm && validatorResult) {
+    validatorForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = validatorForm.querySelector('button[type="submit"]');
+      const payload = new FormData(validatorForm);
+      ["trigger_confirmed", "liquidity_checked", "news_checked"].forEach(name => {
+        if (!validatorForm.elements[name].checked) payload.set(name, "no");
+      });
+      button.disabled = true;
+      validatorResult.hidden = false;
+      if (validatorEmpty) validatorEmpty.hidden = true;
+      validatorResult.textContent = "Memeriksa aturan dan risiko…";
+      try {
+        const response = await fetch("/api/trade-validator", { method: "POST", body: payload, headers: { "Accept": "application/json" }, cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        const title = document.createElement("h3");
+        title.textContent = data.status;
+        title.dataset.status = data.status;
+        const summary = document.createElement("p");
+        summary.textContent = data.summary;
+        const metrics = document.createElement("p");
+        metrics.textContent = "Instrumen: " + data.instrument + " · Arah: " + data.direction + " · R:R: " + (data.risk_reward == null ? "belum tersedia" : data.risk_reward.toFixed(2) + ":1") + " · Probabilitas menang: tidak diestimasi";
+        const sections = [
+          ["BLOCKERS", data.blockers], ["PERLU DITINJAU", data.warnings], ["LOLOS", data.passed], ["BATASAN", data.limitations]
+        ];
+        const nodes = [title, summary, metrics];
+        sections.forEach(([label, items]) => {
+          if (!items || !items.length) return;
+          const heading = document.createElement("h4"); heading.textContent = label; nodes.push(heading);
+          const list = document.createElement("ul");
+          items.forEach(item => { const li = document.createElement("li"); li.textContent = item; list.appendChild(li); });
+          nodes.push(list);
+        });
+        validatorResult.replaceChildren(...nodes);
+        validatorResult.dataset.status = data.status;
+        validatorResult.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } catch (error) {
+        validatorResult.textContent = "Validasi gagal: " + (error.message || "kesalahan tidak diketahui");
+      } finally { button.disabled = false; }
+    });
+  }
 })();

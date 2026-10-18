@@ -20,6 +20,7 @@ from .services.economic_context import build_economic_context
 from .services.news import news_view
 from .services.news_relevance import high_impact_news
 from .services.news_expectation import analyze_release
+from .services.trade_validator import validate_setup
 from .services.econ_calendar import fetch_bls_calendar
 from .services.calendar_store import ensure_calendar_table, save_calendar_events, list_calendar_events
 from .timeutil import fmt_utc, to_local
@@ -478,6 +479,32 @@ def source_health():
         ],
     }
 
+
+
+
+@app.post("/api/trade-validator")
+def trade_validator(
+    instrument: str = Form("XAUUSD"),
+    direction: str = Form(""),
+    entry: str = Form(""),
+    stop_loss: str = Form(""),
+    take_profit: str = Form(""),
+    risk_pct: str = Form(""),
+    max_risk_pct: str = Form(""),
+    htf_bias: str = Form(""),
+    setup: str = Form(""),
+    trigger_confirmed: str = Form("no"),
+    liquidity_checked: str = Form("no"),
+    news_checked: str = Form("no"),
+    rr_min: str = Form("1.5"),
+):
+    """Independent process checklist; deliberately does not predict trade direction."""
+    return validate_setup(
+        instrument=instrument, direction=direction, entry=entry, stop_loss=stop_loss,
+        take_profit=take_profit, risk_pct=risk_pct, max_risk_pct=max_risk_pct,
+        htf_bias=htf_bias, setup=setup, trigger_confirmed=trigger_confirmed,
+        liquidity_checked=liquidity_checked, news_checked=news_checked, rr_min=rr_min,
+    )
 
 @app.post("/api/news-expectation")
 def news_expectation(
