@@ -80,6 +80,57 @@
     window.setTimeout(() => { refresh.disabled = false; }, 10000);
   }
 
+  // Mobile chart dock: move the same iframe into a compact floating panel
+  // after the chart has been scrolled away. A stage placeholder preserves layout.
+  const chartStage = document.getElementById("market-chart-stage");
+  if (chartStage && chartHost) {
+    const dock = document.createElement("aside");
+    dock.id = "market-chart-dock";
+    dock.setAttribute("aria-label", "Chart market ringkas");
+    dock.innerHTML = '<div class="chart-dock-heading"><span><strong>Chart aktif</strong> · ketuk × untuk kembali ke posisi chart</span><button type="button" class="chart-dock-close" aria-label="Tutup chart ringkas">×</button></div>';
+    document.body.appendChild(dock);
+    const closeDock = dock.querySelector(".chart-dock-close");
+    let docked = false;
+    let framePending = false;
+    const mobileView = window.matchMedia("(max-width: 1099px)");
+    function setDock(next) {
+      if (next === docked) return;
+      docked = next;
+      if (docked) {
+        chartStage.style.height = chartHost.getBoundingClientRect().height + "px";
+        dock.appendChild(chartHost);
+      } else {
+        chartStage.appendChild(chartHost);
+        chartStage.style.height = "";
+      }
+      document.body.classList.toggle("chart-docked", docked);
+    }
+    function updateDock() {
+      framePending = false;
+      if (!mobileView.matches) {
+        setDock(false);
+        return;
+      }
+      const rect = chartStage.getBoundingClientRect();
+      // Wait until the chart is almost entirely above the viewport.
+      if (!docked && rect.bottom < 90) setDock(true);
+      else if (docked && rect.top > 90) setDock(false);
+    }
+    function onScrollOrResize() {
+      if (framePending) return;
+      framePending = true;
+      window.requestAnimationFrame(updateDock);
+    }
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize, { passive: true });
+    if (mobileView.addEventListener) mobileView.addEventListener("change", onScrollOrResize);
+    else if (mobileView.addListener) mobileView.addListener(onScrollOrResize);
+    closeDock.addEventListener("click", () => {
+      setDock(false);
+      chartStage.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   tabs.forEach(button => button.addEventListener("click", () => {
     symbol = button.dataset.marketSymbol;
     tabs.forEach(tab => {
