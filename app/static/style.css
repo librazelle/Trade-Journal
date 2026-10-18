@@ -433,11 +433,15 @@ a.replay-title:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 @media (max-width: 1099px) {
   .wrap { padding-bottom: 88px; }
+  /* Persistent chart workspace: keep Market Monitor visible above every mobile tab. */
   .layout > [data-tab] { display: none; }
-  .layout[data-active-tab="market"] > [data-tab="market"],
+  .layout > [data-tab="market"] { display: block; }
   .layout[data-active-tab="calendar"] > [data-tab="calendar"],
   .layout[data-active-tab="journal"] > [data-tab="journal"],
   .layout[data-active-tab="news"] > [data-tab="news"] { display: block; }
+  .layout[data-active-tab="market"] > [data-tab="calendar"],
+  .layout[data-active-tab="market"] > [data-tab="journal"],
+  .layout[data-active-tab="market"] > [data-tab="news"] { display: none; }
 
   .mobile-tabs {
     position: fixed;
