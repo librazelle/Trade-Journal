@@ -141,7 +141,7 @@
         if (!found) return { parts, isOpen, targetDate: now, countdown: "Jadwal berikutnya tidak tersedia" };
       }
       const targetDate = zonedDateTimeToDate(target, session.zone);
-      return { parts, isOpen, targetDate, countdown: (isOpen ? "Tutup dalam " : "Buka dalam ") + durationText((targetDate.getTime() - now.getTime()) / 1000) };
+      return { parts, isOpen, targetDate, countdown: (isOpen ? "Sesi berakhir dalam " : "Sesi dimulai dalam ") + durationText((targetDate.getTime() - now.getTime()) / 1000) };
     }
 
     function render() {
@@ -203,9 +203,9 @@
           </div>
         </div>
         <div class="clock-meta">Jadwal sesi: ${pad(session.open)}:00–${pad(session.close)}:00 waktu ${session.city} · ${sessionDate}</div>
-        <div class="clock-status ${state.isOpen ? "is-open" : "is-closed"}"><i></i>${state.isOpen ? "SESI SEDANG BUKA" : "SESI TUTUP"}</div>
+        <div class="clock-status ${state.isOpen ? "is-open" : "is-closed"}"><i></i>${state.isOpen ? "SESI SEDANG BERLANGSUNG" : "SESI BELUM DIMULAI / TUTUP"}</div>
         <div class="session-countdown ${state.isOpen ? "is-open" : ""}" aria-live="polite">${state.countdown}</div>
-        <p class="clock-footnote">Jam mengikuti zona waktu resmi dan perubahan DST. Sesi ini adalah acuan waktu trading, bukan jam bursa tunggal.</p>`;
+        <p class="clock-footnote">Jam mengikuti zona waktu resmi dan perubahan DST. Ini jadwal sesi untuk analisis trading, bukan status buka/tutup bursa atau instrumen.</p>`;
     }
     buttons.forEach(button => button.addEventListener("click", () => {
       view = button.dataset.clockView;
