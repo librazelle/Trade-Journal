@@ -35,7 +35,10 @@ CREATE TABLE IF NOT EXISTS macro_reactions (
     release_time TEXT NOT NULL,
     expected_direction TEXT NOT NULL CHECK (expected_direction IN ('up', 'down')),
     price_before REAL NOT NULL,
+    price_after_1m REAL,
+    price_after_5m REAL,
     price_after_15m REAL NOT NULL,
+    price_after_60m REAL,
     note TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
 );
@@ -69,6 +72,10 @@ def init_db() -> None:
     try:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA)
+        reaction_columns = {row[1] for row in conn.execute("PRAGMA table_info(macro_reactions)").fetchall()}
+        for column in ("price_after_1m", "price_after_5m", "price_after_60m"):
+            if column not in reaction_columns:
+                conn.execute(f"ALTER TABLE macro_reactions ADD COLUMN {column} REAL")
         trade_columns = {row[1] for row in conn.execute("PRAGMA table_info(trades)").fetchall()}
         if "econ_context_json" not in trade_columns:
             conn.execute("ALTER TABLE trades ADD COLUMN econ_context_json TEXT NOT NULL DEFAULT '[]'")
