@@ -1002,3 +1002,35 @@ button[data-market-symbol].active { color:var(--ink); border-color:var(--ink); }
 .market-chart-attribution { font-size:11px; color:var(--muted); margin:5px 0 0; }
 .market-chart-attribution a { text-underline-offset:2px; }
 @media(max-width:520px) { .market-chart { height:300px; } .market-monitor-controls { align-items:flex-start; } .market-symbol-tabs { width:100%; } }
+
+
+/* Session clock UX: compact session switcher and denser mobile readout. */
+.clock-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+.clock-options button {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 5px;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.clock-readout { gap: 7px; }
+.clock-pair { gap: 6px; }
+.clock-time-card { gap: 4px; padding: 8px; }
+.clock-time-card strong { font-size: clamp(15px, 4vw, 19px); }
+.clock-meta { line-height: 1.45; }
+.session-countdown { margin-top: 2px; padding: 8px 10px; }
+@media (max-width: 420px) {
+  .market-clock { padding: 8px; gap: 6px; }
+  .clock-options { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .clock-options button { padding: 8px 2px; font-size: 11px; }
+  .clock-pair { gap: 5px; }
+  .clock-time-card { padding: 7px 6px; }
+  .clock-time-card strong { font-size: 15px; letter-spacing: -.03em; }
+  .clock-time-label { font-size: 9px; }
+  .clock-time-card small { font-size: 10px; }
+  .session-countdown { font-size: 14px; }
+}
