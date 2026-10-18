@@ -96,6 +96,43 @@
       </form>
     </section>
 
+    <section class="section trade-validator-panel" aria-labelledby="trade-validator-title">
+      <h2 id="trade-validator-title">Discipline Check <span class="muted">· reviewer independen</span></h2>
+      <p class="muted">Isi sebelum entry. Sistem memeriksa aturan dan kelengkapan bukti, bukan menebak candle atau menjanjikan win rate.</p>
+      <form id="trade-validator-form" class="form">
+        <div class="fields-2">
+          <label>Instrumen
+            <select name="instrument"><option>XAUUSD</option><option>NASDAQ100</option></select>
+          </label>
+          <label>Arah
+            <select name="direction" required><option value="">Pilih arah</option><option value="long">Long / Buy</option><option value="short">Short / Sell</option></select>
+          </label>
+        </div>
+        <div class="fields-3">
+          <label>Entry<input name="entry" inputmode="decimal" placeholder="Harga entry" required></label>
+          <label>Stop-loss<input name="stop_loss" inputmode="decimal" placeholder="Harga SL" required></label>
+          <label>Take-profit<input name="take_profit" inputmode="decimal" placeholder="Harga TP" required></label>
+        </div>
+        <div class="fields-2">
+          <label>Risiko trade (%)<input name="risk_pct" inputmode="decimal" placeholder="Mis. 0.5" required></label>
+          <label>Batas risiko pribadi (%)<input name="max_risk_pct" inputmode="decimal" placeholder="Mis. 1.0" required></label>
+        </div>
+        <div class="fields-2">
+          <label>Bias HTF
+            <select name="htf_bias"><option value="">Belum ditentukan</option><option value="bullish">Bullish</option><option value="bearish">Bearish</option><option value="neutral">Neutral</option></select>
+          </label>
+          <label>Minimum R:R pribadi<input name="rr_min" inputmode="decimal" value="1.5"></label>
+        </div>
+        <label>Alasan setup<input name="setup" placeholder="Mis. H1 bearish, M5 IFVG, M1 CISD"></label>
+        <label class="check-row"><input type="checkbox" name="trigger_confirmed" value="yes"> Trigger entry sudah terkonfirmasi di chart</label>
+        <label class="check-row"><input type="checkbox" name="liquidity_checked" value="yes"> Struktur dan liquidity sudah diperiksa</label>
+        <label class="check-row"><input type="checkbox" name="news_checked" value="yes"> Kalender berita dan risiko rilis sudah diperiksa</label>
+        <button type="submit">Validasi disiplin trade</button>
+      </form>
+      <p id="trade-validator-empty" class="muted">Belum ada hasil validasi.</p>
+      <div id="trade-validator-result" class="validator-result" role="status" aria-live="polite" hidden></div>
+    </section>
+
     <section class="section macro-study">
       <h2>News Impact Timeline <span class="muted">· reaksi harga bertahap</span></h2>
       <p class="muted">Catat bias sebelum rilis, harga sebelum rilis, dan harga 15 menit sesudahnya. Win rate hanya mengukur apakah arah 15 menit sesuai bias yang dicatat, bukan profitabilitas trade. Jangan isi bias setelah melihat hasil.</p>
