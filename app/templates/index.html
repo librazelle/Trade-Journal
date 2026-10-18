@@ -185,10 +185,17 @@
       </section>
 
       {% if macro_reactions %}
-      <h3 class="section">Riwayat reaksi terbaru</h3>
-      <ul class="trades">{% for r in macro_reactions %}
-        <li><div class="reaction-row"><span>{{ r.event_type }} · {{ r.instrument }}</span><span>{{ r.expected_direction|capitalize }} bias</span><span>{{ '%.4f'|format(r.price_before) }} → {{ '%.4f'|format(r.price_after_15m) }}</span></div></li>
-      {% endfor %}</ul>
+      <h3 class="section">Riwayat News Impact Timeline</h3>
+      <div class="table-scroll"><table class="reaction-table"><thead><tr><th>Event / instrumen</th><th>Sebelum</th><th>+1m</th><th>+5m</th><th>+15m</th><th>+60m</th></tr></thead><tbody>
+      {% for r in macro_reactions %}
+      <tr><td>{{ r.event_type }} · {{ r.instrument }}<br><small>{{ r.release_time|to_local }} · bias {{ r.expected_direction }}</small></td>
+      <td>{{ '%.4f'|format(r.price_before) }}</td>
+      <td>{{ '%.4f'|format(r.price_after_1m) if r.price_after_1m is not none else '—' }}</td>
+      <td>{{ '%.4f'|format(r.price_after_5m) if r.price_after_5m is not none else '—' }}</td>
+      <td>{{ '%.4f'|format(r.price_after_15m) }}</td>
+      <td>{{ '%.4f'|format(r.price_after_60m) if r.price_after_60m is not none else '—' }}</td></tr>
+      {% endfor %}</tbody></table></div>
+      <p class="muted">Observasi manual. Tanda — berarti data tidak tersedia, bukan harga nol.</p>
       {% endif %}
     </section>
 
