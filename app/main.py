@@ -2,6 +2,8 @@
 import asyncio
 import json
 import math
+
+import httpx
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
