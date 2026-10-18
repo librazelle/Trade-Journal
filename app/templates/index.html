@@ -97,7 +97,7 @@
     </section>
 
     <section class="section macro-study">
-      <h2>Statistik reaksi news <span class="muted">· catatan historis manual</span></h2>
+      <h2>News Impact Timeline <span class="muted">· reaksi harga bertahap</span></h2>
       <p class="muted">Catat bias sebelum rilis, harga sebelum rilis, dan harga 15 menit sesudahnya. Win rate hanya mengukur apakah arah 15 menit sesuai bias yang dicatat, bukan profitabilitas trade. Jangan isi bias setelah melihat hasil.</p>
       {% if macro_import_message %}<p class="notice">{{ macro_import_message }}</p>{% endif %}
 
@@ -144,7 +144,7 @@
           </div>
           <label>Harga sebelum rilis <input name="price_before" inputmode="decimal" placeholder="contoh: 2650.50" required></label>
         </div>
-        <label>Harga 15 menit setelah rilis <input name="price_after_15m" inputmode="decimal" placeholder="contoh: 2655.20" required></label>
+        <div class="fields-2 timeline-price-fields">\n          <label>Harga +1 menit <input name="price_after_1m" inputmode="decimal" placeholder="Opsional"></label>\n          <label>Harga +5 menit <input name="price_after_5m" inputmode="decimal" placeholder="Opsional"></label>\n          <label>Harga +15 menit <input name="price_after_15m" inputmode="decimal" placeholder="contoh: 2655.20" required></label>\n          <label>Harga +60 menit <input name="price_after_60m" inputmode="decimal" placeholder="Opsional"></label>\n        </div>\n        <p class="muted">Isi harga pada horizon yang tersedia. Jangan mengisi harga yang belum terjadi atau tidak bisa diverifikasi.</p>
         <label>Catatan / alasan bias <textarea name="note" rows="2"></textarea></label>
         <button type="submit">Simpan reaksi event</button>
       </form>
