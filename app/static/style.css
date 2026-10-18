@@ -976,3 +976,29 @@ button:active { transform: translateY(1px); }
   .trade-validator-panel .fields-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .trade-validator-panel input, .trade-validator-panel select { width: 100%; }
 }
+
+/* Market monitor */
+.market-monitor-panel { grid-column: 1 / -1; min-width: 0; padding: 14px 0 18px; border-bottom: 1px solid var(--rule); }
+.market-monitor-heading, .market-monitor-controls, .market-data-meta, .market-price-row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; }
+.market-monitor-heading h2 { margin-bottom:3px; }
+.market-monitor-heading p { margin:0; }
+.market-feed-status { border:1px solid var(--rule); padding:3px 7px; font-size:10px; font-weight:700; letter-spacing:.05em; }
+.market-feed-status.ok { color:var(--long); border-color:var(--long); }
+.market-feed-status.warn { color:var(--rumor); border-color:var(--rumor); }
+.market-feed-status.error { color:var(--short); border-color:var(--short); }
+.market-monitor-controls { margin:12px 0; }
+.market-symbol-tabs { display:flex; gap:6px; overflow-x:auto; max-width:100%; }
+button[data-market-symbol] { width:auto; white-space:nowrap; background:var(--surface); color:var(--muted); border:1px solid var(--rule); padding:8px 10px; font-size:13px; }
+button[data-market-symbol].active { color:var(--ink); border-color:var(--ink); }
+.market-monitor-controls label { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:13px; }
+.market-monitor-controls select { background:var(--surface); color:var(--ink); border:1px solid var(--rule); border-radius:2px; padding:8px; font:14px var(--sans); }
+.market-monitor-controls button:disabled { opacity:.55; cursor:wait; }
+.market-price-row { justify-content:flex-start; margin:6px 0; }
+.market-price-row strong { font-size:22px; font-variant-numeric:tabular-nums; }
+.market-price-row span, .market-data-meta { color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }
+.market-chart { height:340px; width:100%; min-width:0; overflow:hidden; background:var(--bg); border:1px solid var(--rule); }
+.market-data-meta { margin-top:8px; }
+.market-disclaimer { margin:8px 0 0; }
+.market-chart-attribution { font-size:11px; color:var(--muted); margin:5px 0 0; }
+.market-chart-attribution a { text-underline-offset:2px; }
+@media(max-width:520px) { .market-chart { height:300px; } .market-monitor-controls { align-items:flex-start; } .market-symbol-tabs { width:100%; } }
