@@ -70,45 +70,62 @@ async def market_monitor(instrument: str, interval: str = "1m"):
     if interval not in {"1m", "5m", "15m", "30m", "60m", "1d"}:
         raise HTTPException(400, "Timeframe tidak didukung")
     item = MARKET_SYMBOLS[key]
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{item['ticker']}"
-    try:
-        async with httpx.AsyncClient(timeout=8.0, headers={"User-Agent": "Trade-Lens/1.0 public market monitor"}) as client:
-            response = await client.get(url, params={"range": "1d" if interval != "1d" else "1y", "interval": interval, "events": "history"})
-            response.raise_for_status()
-            payload = response.json()
-        result = (payload.get("chart", {}).get("result") or [None])[0]
-        if not result:
-            raise ValueError("Sumber tidak mengembalikan data candle")
-        timestamps = result.get("timestamp") or []
-        quote = ((result.get("indicators") or {}).get("quote") or [{}])[0]
-        candles = []
-        for i, stamp in enumerate(timestamps):
-            try:
-                values = [quote[field][i] for field in ("open", "high", "low", "close")]
-                if any(value is None or not math.isfinite(float(value)) for value in values):
-                    continue
-                candles.append({"time": int(stamp), "open": float(values[0]), "high": float(values[1]), "low": float(values[2]), "close": float(values[3])})
-            except (IndexError, KeyError, TypeError, ValueError):
+    urls = [
+        f"https://query1.finance.yahoo.com/v8/finance/chart/{item['ticker']}",
+        f"https://query2.finance.yahoo.com/v8/finance/chart/{item['ticker']}",
+    ]
+    params = {"range": "1d" if interval != "1d" else "1y", "interval": interval, "events": "history"}
+    upstream_errors = []
+    for url in urls:
+        try:
+            async with httpx.AsyncClient(timeout=8.0, headers={
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36",
+                "Accept": "application/json,text/plain,*/*",
+            }) as client:
+                response = await client.get(url, params=params)
+            if response.status_code >= 400:
+                upstream_errors.append(f"HTTP {response.status_code}")
                 continue
-        candles = candles[-500:]
-        if not candles:
-            raise ValueError("Sumber tidak mengembalikan candle valid")
-        meta = result.get("meta") or {}
-        regular = meta.get("currentTradingPeriod", {}).get("regular", {})
-        return {
-            "instrument": key, "label": item["label"], "ticker": item["ticker"],
-            "source": item["source"], "status": "DELAY_UNKNOWN",
-            "message": "Feed publik; latensi dan hak akses data tidak dijamin. Jangan anggap realtime.",
-            "interval": interval, "candles": candles,
-            "last_candle_at": datetime.fromtimestamp(candles[-1]["time"], timezone.utc).isoformat(),
-            "fetched_at": datetime.now(timezone.utc).isoformat(),
-            "currency": meta.get("currency"), "exchange_timezone": meta.get("exchangeTimezoneName"),
-            "regular_session": {"start": regular.get("start"), "end": regular.get("end")} if regular else None,
-        }
-    except HTTPException:
-        raise
-    except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
-        raise HTTPException(502, f"Data market sementara tidak tersedia: {type(exc).__name__}") from None
+            payload = response.json()
+            chart = payload.get("chart") or {}
+            if chart.get("error"):
+                upstream_errors.append("upstream chart error")
+                continue
+            result = (chart.get("result") or [None])[0]
+            if not result:
+                upstream_errors.append("empty upstream result")
+                continue
+            timestamps = result.get("timestamp") or []
+            quote = ((result.get("indicators") or {}).get("quote") or [{}])[0]
+            candles = []
+            for i, stamp in enumerate(timestamps):
+                try:
+                    values = [quote[field][i] for field in ("open", "high", "low", "close")]
+                    if any(value is None or not math.isfinite(float(value)) for value in values):
+                        continue
+                    candles.append({"time": int(stamp), "open": float(values[0]), "high": float(values[1]), "low": float(values[2]), "close": float(values[3])})
+                except (IndexError, KeyError, TypeError, ValueError):
+                    continue
+            candles = candles[-500:]
+            if not candles:
+                upstream_errors.append("no valid candles")
+                continue
+            meta = result.get("meta") or {}
+            regular = meta.get("currentTradingPeriod", {}).get("regular", {})
+            return {
+                "instrument": key, "label": item["label"], "ticker": item["ticker"],
+                "source": "Yahoo Finance chart endpoint", "status": "DELAY_UNKNOWN",
+                "message": "Feed publik; latensi dan hak akses data tidak dijamin. Jangan anggap realtime.",
+                "interval": interval, "candles": candles,
+                "last_candle_at": datetime.fromtimestamp(candles[-1]["time"], timezone.utc).isoformat(),
+                "fetched_at": datetime.now(timezone.utc).isoformat(),
+                "currency": meta.get("currency"), "exchange_timezone": meta.get("exchangeTimezoneName"),
+                "regular_session": {"start": regular.get("start"), "end": regular.get("end")} if regular else None,
+            }
+        except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
+            upstream_errors.append(type(exc).__name__)
+    detail = ", ".join(upstream_errors[-2:]) or "unknown upstream error"
+    raise HTTPException(502, f"Data market sementara tidak tersedia ({item['ticker']}): {detail}")
 
 
 # ---------- helper input ----------
