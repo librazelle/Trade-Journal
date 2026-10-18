@@ -19,8 +19,11 @@
     <div class="market-price-row"><strong id="market-last-price">—</strong><span id="market-last-time">Menunggu data candle…</span></div>
     <div id="market-chart" class="market-chart" role="img" aria-label="Candlestick chart instrumen market terpilih"></div>
     <div class="market-data-meta"><span id="market-source">Sumber: belum dimuat</span><span id="market-fetched-at">Update: —</span></div>
-    <p class="muted market-disclaimer" id="market-disclaimer">Harga dapat tertunda atau berbeda dari broker. Status feed akan tetap ditandai tidak terverifikasi sebagai realtime.</p>
-    <p class="market-chart-attribution">Interactive market chart provided by <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView</a>.</p>
+    <details class="chart-info-details">
+      <summary>Info sumber &amp; keterlambatan data</summary>
+      <p class="muted market-disclaimer" id="market-disclaimer">Harga dapat tertunda atau berbeda dari broker. Status feed akan tetap ditandai tidak terverifikasi sebagai realtime.</p>
+      <p class="market-chart-attribution">Interactive market chart provided by <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView</a>.</p>
+    </details>
   </section>
 
 <div class="layout" data-active-tab="calendar">
@@ -280,15 +283,18 @@
   </div>
 
   <aside class="pane wire-pane" data-tab="news">
-    <div class="reading-mode-control reading-mode-global">
-      <label for="reading-mode">Cara baca berita</label>
-      <select id="reading-mode">
-        <option value="original">Judul &amp; sumber asli</option>
-        <option value="normal">Ringkasan Bahasa Indonesia</option>
-        <option value="simple">Bahasa super gampang · pemula</option>
-      </select>
-      <p class="muted">Pilih tingkat bahasa untuk berita di bawah. Pilihan tersimpan di browser.</p>
-    </div>
+    <details class="news-preferences">
+      <summary>Preferensi berita <span class="muted">· bahasa &amp; ringkasan</span></summary>
+      <div class="reading-mode-control reading-mode-global">
+        <label for="reading-mode">Cara baca berita</label>
+        <select id="reading-mode">
+          <option value="original">Judul &amp; sumber asli</option>
+          <option value="normal">Ringkasan Bahasa Indonesia</option>
+          <option value="simple">Bahasa super gampang · pemula</option>
+        </select>
+        <p class="muted">Pilihan tersimpan di browser.</p>
+      </div>
+    </details>
     <section class="priority-news-panel">
       <h2>Berita relevan untuk <span id="news-pair-label">Nasdaq 100</span> <span class="muted">· watchlist makro</span></h2>
       <p class="muted">Daftar ini difilter dari instrumen terkait yang ditandai sumber berita. Relevansi bukan jaminan arah atau korelasi statistik.</p>

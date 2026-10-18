@@ -1280,3 +1280,67 @@ button[data-market-symbol].active { color:var(--ink); border-color:var(--ink); }
     transition: border-color 160ms ease, background-color 160ms ease;
   }
 }
+
+
+/* Mobile content density: keep chart caveats available without letting them
+   compete with the instrument, and make news metadata easier to scan. */
+.chart-info-details {
+  margin: 7px 0 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.chart-info-details > summary,
+.news-preferences > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.chart-info-details > summary::-webkit-details-marker,
+.news-preferences > summary::-webkit-details-marker { display: none; }
+.chart-info-details > summary::after,
+.news-preferences > summary::after { content: "+"; font-size: 15px; color: var(--ink); }
+.chart-info-details[open] > summary::after,
+.news-preferences[open] > summary::after { content: "−"; }
+.chart-info-details .market-disclaimer { margin: 5px 0; }
+.chart-info-details .market-chart-attribution { margin: 5px 0 8px; }
+.news-preferences {
+  margin: 0 0 12px;
+  padding: 0 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--panel-radius, 8px);
+  background: var(--surface);
+}
+.news-preferences > summary { min-height: 40px; font-weight: 600; color: var(--ink); }
+.news-preferences > summary .muted { margin-right: auto; font-size: 10px; }
+.news-preferences .reading-mode-control {
+  margin: 0;
+  padding: 0 0 10px;
+  border: 0;
+  background: transparent;
+}
+.news-preferences .reading-mode-control p { margin-bottom: 0; }
+.priority-news-meta {
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.priority-news-item { min-width: 0; }
+.priority-news-item h3 { overflow-wrap: anywhere; }
+.instrument-chips { gap: 5px; }
+.instrument-chips span { white-space: nowrap; }
+@media (max-width: 1099px) {
+  .chart-info-details > summary { padding: 6px 0; }
+  .news-preferences { margin-bottom: 10px; }
+  .priority-news-panel > p { line-height: 1.45; }
+  .priority-news-panel > h2 { font-size: 17px; line-height: 1.3; }
+  .priority-news-item { gap: 7px; padding: 12px 0; }
+  .priority-news-meta { font-size: 10px; }
+  .priority-news-item h3 { font-size: 15px; line-height: 1.4; }
+}
