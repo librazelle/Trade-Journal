@@ -10,74 +10,80 @@
   const timeframe = document.getElementById("market-timeframe");
   const refresh = document.getElementById("market-refresh");
   const tabs = [...root.querySelectorAll("[data-market-symbol]")];
+  const symbols = {
+    NASDAQ100: { symbol: "NASDAQ:NDX", label: "Nasdaq 100" },
+    XAUUSD: { symbol: "OANDA:XAUUSD", label: "XAU/USD spot (TradingView provider; compare with your broker)" },
+    SP500: { symbol: "SP:SPX", label: "S&P 500" }
+  };
   let symbol = "NASDAQ100";
-  let chart = null;
-  let candleSeries = null;
-  let resizeObserver = null;
-  let requestSequence = 0;
-  let refreshTimer = null;
-  const fmtTime = value => value ? new Intl.DateTimeFormat("id-ID", { timeZone:"Asia/Jakarta", dateStyle:"medium", timeStyle:"medium" }).format(new Date(value)) : "—";
-  const fmtPrice = value => Number(value).toLocaleString("en-US", { maximumFractionDigits: 4 });
-  function setStatus(text, kind) { status.textContent = text; status.className = "market-feed-status " + (kind || ""); }
-  function initChart() {
-    if (!window.LightweightCharts) {
-      setStatus("CHART LIBRARY OFFLINE", "error");
-      chartHost.textContent = "Library chart tidak termuat. Periksa koneksi lalu refresh.";
-      return false;
-    }
-    if (chart) return true;
-    chart = LightweightCharts.createChart(chartHost, {
-      autoSize: true,
-      layout: { background: { type: "solid", color: "#0d1219" }, textColor: "#aeb8c6", attributionLogo: true },
-      grid: { vertLines: { color: "#1b2635" }, horzLines: { color: "#1b2635" } },
-      rightPriceScale: { borderColor: "#26334a" },
-      timeScale: { borderColor: "#26334a", timeVisible: true, secondsVisible: false },
-      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-      localization: { locale: "id-ID" }
-    });
-    candleSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
-      upColor: "#6fbf94", downColor: "#e27d6a", borderVisible: false,
-      wickUpColor: "#6fbf94", wickDownColor: "#e27d6a"
-    });
-    resizeObserver = new ResizeObserver(() => chart && chart.applyOptions({ width: chartHost.clientWidth, height: chartHost.clientHeight }));
-    resizeObserver.observe(chartHost);
-    return true;
+  let frame = null;
+  const intervals = { "1m": "1", "5m": "5", "15m": "15", "30m": "30", "60m": "60", "1d": "D" };
+
+  function setStatus(text, kind) {
+    status.textContent = text;
+    status.className = "market-feed-status " + (kind || "");
   }
-  async function load() {
-    const seq = ++requestSequence;
+
+  function buildChartUrl() {
+    const selected = symbols[symbol];
+    const params = new URLSearchParams({
+      frameElementId: "trade_lens_tradingview",
+      symbol: selected.symbol,
+      interval: intervals[timeframe.value] || "15",
+      hidesidetoolbar: "0",
+      symboledit: "1",
+      saveimage: "0",
+      toolbarbg: "0d1219",
+      theme: "dark",
+      style: "1",
+      timezone: "Asia/Jakarta",
+      withdateranges: "1",
+      hideideas: "1",
+      locale: "id"
+    });
+    return "https://www.tradingview.com/widgetembed/?" + params.toString();
+  }
+
+  function load() {
     refresh.disabled = true;
-    setStatus("MENGAMBIL DATA", "warn");
-    try {
-      const response = await fetch("/api/market-monitor/" + encodeURIComponent(symbol) + "?interval=" + encodeURIComponent(timeframe.value), { cache:"no-store", headers:{Accept:"application/json"} });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || ("HTTP " + response.status));
-      if (seq !== requestSequence) return;
-      if (!initChart()) return;
-      candleSeries.setData(data.candles);
-      chart.timeScale().fitContent();
-      const latest = data.candles[data.candles.length - 1];
-      price.textContent = fmtPrice(latest.close);
-      lastTime.textContent = "Candle terakhir: " + fmtTime(data.last_candle_at);
-      source.textContent = "Sumber: " + data.source + " (" + data.ticker + ")";
-      fetched.textContent = "Diambil: " + fmtTime(data.fetched_at);
-      setStatus("DATA TERSEDIA · REALTIME TIDAK TERVERIFIKASI", "warn");
-    } catch (error) {
-      if (seq !== requestSequence) return;
-      setStatus("FEED TIDAK TERSEDIA", "error");
-      lastTime.textContent = "Gagal mengambil data: " + (error.message || "kesalahan tidak diketahui");
-      source.textContent = "Sumber: belum terkonfirmasi";
-    } finally {
-      if (seq === requestSequence) refresh.disabled = false;
-    }
+    setStatus("MEMUAT CHART", "warn");
+    const selected = symbols[symbol];
+    const iframe = document.createElement("iframe");
+    iframe.title = "Chart " + selected.label;
+    iframe.loading = "eager";
+    iframe.referrerPolicy = "strict-origin-when-cross-origin";
+    iframe.allow = "clipboard-write";
+    iframe.src = buildChartUrl();
+    iframe.style.cssText = "display:block;width:100%;height:100%;min-height:320px;border:0;background:#0d1219";
+    iframe.addEventListener("load", () => {
+      setStatus("CHART TRADINGVIEW", "ok");
+      price.textContent = "Harga ditampilkan di chart";
+      lastTime.textContent = "Data dan waktu mengikuti penyedia TradingView";
+      source.textContent = "Sumber: TradingView · " + selected.symbol;
+      fetched.textContent = "Pembaruan dikelola widget";
+      refresh.disabled = false;
+    }, { once: true });
+    iframe.addEventListener("error", () => {
+      setStatus("CHART GAGAL DIMUAT", "error");
+      lastTime.textContent = "Widget TradingView tidak berhasil dimuat. Periksa koneksi atau pemblokir konten.";
+      source.textContent = "Sumber: TradingView";
+      refresh.disabled = false;
+    }, { once: true });
+    chartHost.replaceChildren(iframe);
+    // A remote iframe may never fire an error event when blocked; avoid leaving Refresh disabled.
+    window.setTimeout(() => { refresh.disabled = false; }, 10000);
   }
+
   tabs.forEach(button => button.addEventListener("click", () => {
     symbol = button.dataset.marketSymbol;
-    tabs.forEach(tab => { const active = tab === button; tab.classList.toggle("active", active); tab.setAttribute("aria-pressed", String(active)); });
+    tabs.forEach(tab => {
+      const active = tab === button;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-pressed", String(active));
+    });
     load();
   }));
   timeframe.addEventListener("change", load);
   refresh.addEventListener("click", load);
   load();
-  refreshTimer = window.setInterval(load, 60000);
-  window.addEventListener("beforeunload", () => { if (refreshTimer) clearInterval(refreshTimer); if (resizeObserver) resizeObserver.disconnect(); if (chart) chart.remove(); });
 })();
