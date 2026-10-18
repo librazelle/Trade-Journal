@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block page_scripts %}<script src="https://unpkg.com/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js" defer></script><script src="/static/market-monitor.js" defer></script>{% endblock %}
+{% block page_scripts %}<script src="/static/market-monitor.js" defer></script>{% endblock %}
 {% block content %}
 <div class="layout" data-active-tab="calendar">
 
@@ -22,7 +22,7 @@
     <div id="market-chart" class="market-chart" role="img" aria-label="Candlestick chart instrumen market terpilih"></div>
     <div class="market-data-meta"><span id="market-source">Sumber: belum dimuat</span><span id="market-fetched-at">Update: —</span></div>
     <p class="muted market-disclaimer" id="market-disclaimer">Harga dapat tertunda atau berbeda dari broker. Status feed akan tetap ditandai tidak terverifikasi sebagai realtime.</p>
-    <p class="market-chart-attribution">Charting by <a href="https://github.com/tradingview/lightweight-charts" target="_blank" rel="noopener noreferrer">TradingView Lightweight Charts</a>.</p>
+    <p class="market-chart-attribution">Interactive market chart provided by <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView</a>.</p>
   </section>
 
   <section class="calendar-panel" id="calendar-panel" data-tab="calendar">
