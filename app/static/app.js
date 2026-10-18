@@ -456,6 +456,34 @@
     });
   });
 
+  // ---------- Pair-aware priority news: chart selection drives relevance below ----------
+  const newsPairLabel = document.getElementById("news-pair-label");
+  const newsPairEmpty = document.getElementById("news-pair-empty");
+  const pairNames = {
+    NASDAQ100: { label: "Nasdaq 100", terms: ["nasdaq", "nas100", "nasdaq100"] },
+    XAUUSD: { label: "XAUUSD / Gold", terms: ["xau", "gold", "emas"] },
+    SP500: { label: "S&P 500", terms: ["s&p", "sp500", "us500", "spx"] }
+  };
+  function filterPriorityNews(symbol) {
+    const selected = pairNames[symbol] || pairNames.NASDAQ100;
+    if (newsPairLabel) newsPairLabel.textContent = selected.label;
+    const items = [...document.querySelectorAll(".priority-news-item[data-instruments]")];
+    let visible = 0;
+    items.forEach(item => {
+      const instruments = (item.dataset.instruments || "").toLowerCase();
+      const matched = selected.terms.some(term => instruments.includes(term));
+      item.hidden = !matched;
+      if (matched) visible++;
+    });
+    if (newsPairEmpty) newsPairEmpty.hidden = items.length === 0 || visible > 0;
+  }
+  let selectedNewsPair = "NASDAQ100";
+  try { selectedNewsPair = localStorage.getItem("tradeLensSelectedInstrument") || selectedNewsPair; } catch (_) {}
+  filterPriorityNews(selectedNewsPair);
+  window.addEventListener("trade-lens:instrument-change", event => {
+    filterPriorityNews(event.detail && event.detail.symbol);
+  });
+
   // ---------- Pilihan cara baca berita (tersimpan di localStorage) ----------
   const readingMode = document.getElementById("reading-mode");
   let currentReadingMode = "original";
