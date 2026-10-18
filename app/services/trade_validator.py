@@ -73,6 +73,8 @@ def validate_setup(*, instrument="", direction="", entry="", stop_loss="", take_
         passed.append("Risiko berita ditandai sudah diperiksa.")
 
     min_rr = _number(rr_min)
+    if min_rr is None or min_rr <= 0:
+        blockers.append("Minimum R:R pribadi wajib berupa angka positif yang valid.")
     rr = None
     if entry_n is not None and sl_n is not None and tp_n is not None and entry_n > 0 and sl_n > 0 and tp_n > 0 and direction in {"long", "short"}:
         risk_distance = abs(entry_n - sl_n)
@@ -81,7 +83,7 @@ def validate_setup(*, instrument="", direction="", entry="", stop_loss="", take_
             rr = reward_distance / risk_distance
             if min_rr is not None and min_rr > 0 and rr < min_rr:
                 warnings.append(f"R:R {rr:.2f}:1 di bawah minimum pribadi {min_rr:.2f}:1.")
-            else:
+            elif min_rr is not None and min_rr > 0:
                 passed.append(f"R:R berdasarkan jarak harga: {rr:.2f}:1.")
         else:
             blockers.append("Jarak entry ke SL tidak boleh nol.")
