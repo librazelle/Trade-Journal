@@ -11,9 +11,9 @@
   const refresh = document.getElementById("market-refresh");
   const tabs = [...root.querySelectorAll("[data-market-symbol]")];
   const symbols = {
-    NASDAQ100: { symbol: "NASDAQ:NDX", label: "Nasdaq 100" },
+    NASDAQ100: { symbol: "OANDA:NAS100USD", label: "Nasdaq 100 CFD (OANDA)" },
     XAUUSD: { symbol: "OANDA:XAUUSD", label: "XAU/USD spot (TradingView provider; compare with your broker)" },
-    SP500: { symbol: "SP:SPX", label: "S&P 500" }
+    SP500: { symbol: "OANDA:SPX500USD", label: "S&P 500 CFD (OANDA)" }
   };
   let symbol = "NASDAQ100";
   let frame = null;
