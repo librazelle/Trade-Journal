@@ -44,7 +44,13 @@
     return "https://www.tradingview.com/widgetembed/?" + params.toString();
   }
 
+  function publishSelectedInstrument() {
+    try { window.localStorage.setItem("tradeLensSelectedInstrument", symbol); } catch (_) {}
+    window.dispatchEvent(new CustomEvent("trade-lens:instrument-change", { detail: { symbol } }));
+  }
+
   function load() {
+    publishSelectedInstrument();
     refresh.disabled = true;
     setStatus("MEMUAT CHART", "warn");
     const selected = symbols[symbol];
