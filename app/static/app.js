@@ -1145,6 +1145,68 @@
     applyNewsFilter();
   });
 
+  // ---------- AI screenshot chart review ----------
+  const chartReviewForm = document.getElementById("chart-review-form");
+  const chartReviewImage = document.getElementById("chart-review-image");
+  const chartReviewPreview = document.getElementById("chart-review-preview");
+  const chartReviewTitle = document.getElementById("chart-upload-title");
+  const chartReviewResult = document.getElementById("chart-review-result");
+  const chartReviewEmpty = document.getElementById("chart-review-empty");
+  if (chartReviewForm && chartReviewImage && chartReviewResult) {
+    chartReviewImage.addEventListener("change", () => {
+      const file = chartReviewImage.files && chartReviewImage.files[0];
+      if (!file) {
+        chartReviewPreview.hidden = true;
+        chartReviewPreview.removeAttribute("src");
+        chartReviewTitle.textContent = "Pilih foto chart";
+        return;
+      }
+      chartReviewTitle.textContent = file.name;
+      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 8 * 1024 * 1024) {
+        chartReviewPreview.hidden = true;
+        chartReviewPreview.removeAttribute("src");
+        return;
+      }
+      chartReviewPreview.src = URL.createObjectURL(file);
+      chartReviewPreview.hidden = false;
+    });
+    chartReviewForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const file = chartReviewImage.files && chartReviewImage.files[0];
+      if (!file) return;
+      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 8 * 1024 * 1024) {
+        chartReviewResult.hidden = false;
+        chartReviewResult.textContent = "Pilih gambar PNG, JPG, atau WebP berukuran maksimal 8 MB.";
+        return;
+      }
+      const button = document.getElementById("chart-review-submit");
+      button.disabled = true;
+      chartReviewResult.hidden = false;
+      if (chartReviewEmpty) chartReviewEmpty.hidden = true;
+      chartReviewResult.textContent = "AI sedang membaca chart dan memeriksa batasan setup…";
+      try {
+        const response = await fetch("/api/gemini/chart-review", {
+          method: "POST", body: new FormData(chartReviewForm),
+          headers: { "Accept": "application/json" }, cache: "no-store"
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.detail || ("HTTP " + response.status));
+        const title = document.createElement("h3");
+        title.textContent = "Hasil AI Chart Review";
+        const note = document.createElement("p");
+        note.textContent = "Review visual, bukan hasil backtest terukur. Verifikasi level dan konteks langsung pada chart.";
+        const content = document.createElement("div");
+        content.className = "chart-review-analysis";
+        content.textContent = data.analysis || "AI tidak mengembalikan hasil.";
+        chartReviewResult.replaceChildren(title, note, content);
+        chartReviewResult.dataset.status = "review";
+        chartReviewResult.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } catch (error) {
+        chartReviewResult.textContent = "Review gagal: " + (error.message || "kesalahan tidak diketahui");
+      } finally { button.disabled = false; }
+    });
+  }
+
   // ---------- Independent pre-trade discipline validator ----------
   const validatorForm = document.getElementById("trade-validator-form");
   const validatorResult = document.getElementById("trade-validator-result");
