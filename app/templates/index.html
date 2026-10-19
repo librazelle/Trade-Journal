@@ -52,20 +52,29 @@
           <label>Instrumen
             <select name="instrument"><option value="XAUUSD">XAUUSD / Gold</option><option value="NASDAQ100">Nasdaq 100</option><option value="SP500">S&amp;P 500</option></select>
           </label>
-          <label>Strategi utama
-            <input name="strategy" maxlength="180" placeholder="Contoh: TJR, MTF H1/H4 → BOS/IFVG M5 → entry M1">
-          </label>
-          <label>Setup saat ini <span class="muted">· singkat</span>
-            <textarea name="setup" rows="3" maxlength="1200" placeholder="Bias, struktur, liquidity, entry, SL/TP, news/session yang relevan. Jangan anggap AI melihat chart otomatis."></textarea>
-          </label>
-          <label>Prop firm &amp; kondisi akun
-            <input name="propfirm" maxlength="140" placeholder="Contoh: FundedNext Stellar 2-Step, akun $6.000">
-          </label>
-          <label>Aturan wajib / batas risiko
-            <textarea name="rules" rows="2" maxlength="800" placeholder="Daily/max loss, risk per trade, lot cap, news rules, minimum trading days, consistency rules..."></textarea>
-          </label>
-          <button type="submit" class="gemini-submit">Analisis pro &amp; kontra</button>
-          <p class="gemini-privacy">Prompt dikirim ke Gemini melalui server. Jangan masukkan password, API key, atau data akun rahasia.</p>
+          <section class="account-profile-editor" aria-label="Profil aturan akun">
+            <div class="profile-heading"><strong>Profil akun</strong><span class="muted">tersimpan di browser ini</span></div>
+            <label>Pilih template
+              <select id="account-profile-select"><option value="">Profil baru / belum disimpan</option></select>
+            </label>
+            <div class="fields-2">
+              <label>Nama profil<input name="profile_name" maxlength="80" placeholder="Mis. FundedNext 6K · Phase 1"></label>
+              <label>Jenis akun
+                <select name="account_type"><option value="Challenge">Challenge</option><option value="Funded">Funded</option><option value="Trial">Trial</option><option value="Akun pribadi">Akun pribadi</option><option value="Evaluation">Evaluation</option></select>
+              </label>
+            </div>
+            <label>Prop firm / broker<input name="propfirm" maxlength="100" placeholder="Mis. FundedNext Stellar"></label>
+            <div class="fields-2">
+              <label>Modal akun<input name="account_size" maxlength="40" placeholder="Mis. USD 6.000"></label>
+              <label>Batas loss harian<input name="daily_loss_limit" maxlength="100" placeholder="Nominal atau % sesuai rule"></label>
+            </div>
+            <label>Max loss &amp; breach<input name="max_loss_limit" maxlength="180" placeholder="Max drawdown, equity/balance rule, kapan breach"></label>
+            <label>Aturan lain<input name="other_rules" maxlength="350" placeholder="News, consistency, lot, minimum days, prohibited strategies..."></label>
+            <div class="profile-actions"><button type="button" id="account-profile-save" class="secondary-button">Simpan sebagai template</button><button type="button" id="account-profile-delete" class="secondary-button" disabled>Hapus template</button></div>
+            <p class="gemini-privacy">Isi dan verifikasi aturan dari dashboard resmi prop firm. Jangan simpan password atau API key.</p>
+          </section>
+          <button type="submit" class="gemini-submit">Buat checklist sebelum entry</button>
+          <p class="gemini-privacy">Gemini memberi pengingat hal yang perlu diperiksa, bukan membaca chart/live market atau memberi sinyal otomatis.</p>
         </form>
         <div id="gemini-trade-result" class="gemini-trade-result" role="status" aria-live="polite" hidden></div>
       </details>
@@ -99,7 +108,13 @@
   </section>
 
   <div class="pane" data-tab="journal">
-    <details class="local-storage-details">
+    <nav class="journal-subnav" aria-label="Menu jurnal" role="tablist">
+      <button type="button" role="tab" data-journal-target="trade" class="active" aria-selected="true">Trade</button>
+      <button type="button" role="tab" data-journal-target="discipline" aria-selected="false">Discipline</button>
+      <button type="button" role="tab" data-journal-target="news-impact" aria-selected="false">News Impact</button>
+      <button type="button" role="tab" data-journal-target="history" aria-selected="false">Riwayat &amp; backup</button>
+    </nav>
+    <details class="local-storage-details" data-journal-section="history">
       <summary>Penyimpanan &amp; backup lokal <span class="muted">· buka untuk migrasi atau backup</span></summary>
       <section class="local-storage-panel" id="local-storage-panel" aria-labelledby="local-storage-title">
   <div class="local-storage-heading">
@@ -118,7 +133,7 @@
   <div id="local-records" class="local-records"><p class="empty">Belum ada catatan lokal.</p></div>
 </section>
     </details>
-    <section>
+    <section data-journal-section="trade">
       <h1>Catat entry</h1>
       <form method="post" action="/trades" class="form">
         <div class="fields-2">
@@ -163,7 +178,7 @@
       </form>
     </section>
 
-    <section class="section trade-validator-panel" aria-labelledby="trade-validator-title">
+    <section class="section trade-validator-panel" data-journal-section="discipline" aria-labelledby="trade-validator-title">
       <h2 id="trade-validator-title">Discipline Check <span class="muted">· reviewer independen</span></h2>
       <p class="muted">Isi sebelum entry. Sistem memeriksa aturan dan kelengkapan bukti, bukan menebak candle atau menjanjikan win rate.</p>
       <form id="trade-validator-form" class="form">
@@ -200,7 +215,7 @@
       <div id="trade-validator-result" class="validator-result" role="status" aria-live="polite" hidden></div>
     </section>
 
-    <section class="section macro-study">
+    <section class="section macro-study" data-journal-section="news-impact">
       <h2>News Impact Timeline <span class="muted">· reaksi harga bertahap</span></h2>
       <p class="muted">Catat bias sebelum rilis, harga sebelum rilis, dan harga 15 menit sesudahnya. Win rate hanya mengukur apakah arah 15 menit sesuai bias yang dicatat, bukan profitabilitas trade. Jangan isi bias setelah melihat hasil.</p>
       {% if macro_import_message %}<p class="notice">{{ macro_import_message }}</p>{% endif %}
@@ -303,7 +318,7 @@
       {% endif %}
     </section>
 
-    <section class="section">
+    <section class="section" data-journal-section="trade">
       <h2>Trade tercatat</h2>
       {% if trades %}
       <ul class="trades">
