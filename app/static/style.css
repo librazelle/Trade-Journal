@@ -1510,3 +1510,162 @@ button[data-market-symbol].active { color:var(--ink); border-color:var(--ink); }
   .journal-subnav button { font-size:10px; padding-inline:1px; }
   .profile-actions { grid-template-columns:1fr; }
 }
+
+
+/* Liquid Glass refresh: layered surfaces, soft refraction and tactile states. */
+:root {
+  --bg: #070b13;
+  --surface: rgba(18, 27, 43, .72);
+  --rule: rgba(174, 197, 231, .16);
+  --ink: #edf4ff;
+  --muted: #9aaac2;
+  --glass-line: rgba(224, 238, 255, .2);
+  --glass-fill: rgba(20, 31, 50, .58);
+  --glass-shadow: 0 18px 48px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255,255,255,.075);
+}
+html { color-scheme: dark; }
+body {
+  background:
+    radial-gradient(ellipse at 12% -8%, rgba(67, 111, 211, .22), transparent 42rem),
+    radial-gradient(ellipse at 100% 22%, rgba(45, 184, 179, .12), transparent 36rem),
+    radial-gradient(ellipse at 52% 105%, rgba(104, 73, 196, .13), transparent 44rem),
+    var(--bg);
+  background-attachment: fixed;
+}
+button, input, select, textarea, summary, a { -webkit-tap-highlight-color: transparent; }
+button, [role="button"], summary, a {
+  transition: color .18s ease, background-color .18s ease, border-color .18s ease,
+    box-shadow .22s ease, transform .22s ease, opacity .18s ease;
+}
+:where(.market-monitor-panel, .pane, .market-insights, .insights-panel,
+  .market-clock, .session-menu-popover, .gemini-copilot, .account-profile-editor,
+  .news-card, .news-item, .card, .panel, .trade-card, .journal-card) {
+  border-color: var(--glass-line);
+  background-color: var(--glass-fill);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+  backdrop-filter: blur(22px) saturate(145%);
+}
+:where(.market-monitor-panel, .pane, .market-insights, .insights-panel,
+  .gemini-copilot, .account-profile-editor, .journal-subnav) {
+  border-radius: 18px;
+}
+.market-monitor-panel, .pane[data-tab], .market-insights, .insights-panel {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+}
+.market-monitor-panel::before, .pane[data-tab]::before,
+.market-insights::before, .insights-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(224,238,255,.46), transparent);
+  opacity: .8;
+}
+:where(.market-monitor-heading, .insights-heading, .market-clock, .journal-subnav,
+  .gemini-copilot > summary, .session-menu > summary) {
+  border-color: var(--glass-line);
+}
+:where(.journal-subnav, .session-menu-popover, .gemini-trade-result,
+  .account-profile-editor, .market-clock, .insights-next) {
+  background: rgba(8, 14, 25, .58);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+:where(button, .journal-subnav button, .segmented button, .tab-button,
+  [data-tab-target], .gemini-submit, .profile-actions button) {
+  border-radius: 12px;
+}
+:where(button, .journal-subnav button, .segmented button, .tab-button,
+  [data-tab-target], .gemini-submit, .profile-actions button):active {
+  transform: scale(.975);
+}
+:where(button, .journal-subnav button, .segmented button, .tab-button,
+  [data-tab-target], .gemini-submit, .profile-actions button):focus-visible,
+:where(input, select, textarea):focus-visible {
+  outline: 2px solid rgba(122, 183, 255, .9);
+  outline-offset: 3px;
+}
+.journal-subnav {
+  position: sticky;
+  top: 8px;
+  z-index: 12;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--glass-line);
+  border-radius: 16px;
+  background: rgba(8, 14, 25, .74);
+  box-shadow: 0 10px 30px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.07);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+}
+.journal-subnav button {
+  min-height: 42px;
+  border-radius: 11px;
+  color: #aebdd3;
+}
+.journal-subnav button.active {
+  border-color: rgba(130, 183, 255, .42);
+  background: linear-gradient(135deg, rgba(98, 153, 255, .25), rgba(83, 211, 204, .11));
+  color: #f2f7ff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.13), 0 4px 16px rgba(54, 117, 220, .12);
+}
+:where(.market-monitor-panel, .pane, .market-insights, .insights-panel,
+  .gemini-copilot, .account-profile-editor, .journal-subnav, .news-card, .news-item) {
+  transition: border-color .2s ease, box-shadow .24s ease, background-color .2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  :where(.market-monitor-panel, .market-insights, .insights-panel, .gemini-copilot,
+    .account-profile-editor, .news-card, .news-item):hover {
+    border-color: rgba(168, 205, 255, .32);
+    box-shadow: 0 22px 54px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.1);
+  }
+  :where(button, .journal-subnav button, .segmented button, .tab-button,
+    [data-tab-target], .gemini-submit, .profile-actions button):hover:not(:disabled) {
+    border-color: rgba(164, 203, 255, .42);
+    filter: brightness(1.08);
+  }
+}
+:where(input, select, textarea) {
+  border-color: rgba(174, 197, 231, .2) !important;
+  border-radius: 12px !important;
+  background: rgba(5, 10, 19, .62) !important;
+}
+.gemini-trade-result {
+  border-radius: 0 14px 14px 0;
+  border-left-width: 3px;
+}
+.gemini-label {
+  border-radius: 999px;
+  background: rgba(114, 169, 255, .1);
+  color: #a8ceff;
+  border-color: rgba(114, 169, 255, .32);
+}
+@media (max-width: 700px) {
+  body { background-attachment: scroll; }
+  :where(.market-monitor-panel, .pane, .market-insights, .insights-panel) {
+    border-radius: 16px;
+  }
+  .journal-subnav {
+    top: 4px;
+    margin-inline: -1px;
+    border-radius: 14px;
+  }
+  .journal-subnav button { min-height: 44px; }
+  :where(.market-monitor-panel, .pane, .market-insights, .insights-panel,
+    .gemini-copilot, .account-profile-editor, .news-card, .news-item) {
+    -webkit-backdrop-filter: blur(16px) saturate(135%);
+    backdrop-filter: blur(16px) saturate(135%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
