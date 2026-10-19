@@ -64,6 +64,9 @@
     const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
     let view = "reminder";
 
+    const escapeText = value => String(value).replace(/[&<>"']/g, char => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[char]);
     const formatClock = (date, zone, withSeconds = true) => new Intl.DateTimeFormat("id-ID", {
       timeZone: zone, hour: "2-digit", minute: "2-digit",
       ...(withSeconds ? { second: "2-digit" } : {}),
