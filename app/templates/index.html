@@ -46,6 +46,29 @@
       </div>
       <div class="insights-next" id="insights-next-event"><span class="muted">Menunggu jadwal kalender…</span></div>
       <div class="insights-headlines" id="insights-headlines"></div>
+      <details class="gemini-copilot" id="gemini-copilot">
+        <summary><span><strong>Gemini Trade Copilot</strong><small>Analisis setup · pro/kontra · aturan prop firm</small></span><span class="gemini-label">AI</span></summary>
+        <form id="gemini-trade-form" class="gemini-trade-form">
+          <label>Instrumen
+            <select name="instrument"><option value="XAUUSD">XAUUSD / Gold</option><option value="NASDAQ100">Nasdaq 100</option><option value="SP500">S&amp;P 500</option></select>
+          </label>
+          <label>Strategi utama
+            <input name="strategy" maxlength="180" placeholder="Contoh: TJR, MTF H1/H4 → BOS/IFVG M5 → entry M1">
+          </label>
+          <label>Setup saat ini <span class="muted">· singkat</span>
+            <textarea name="setup" rows="3" maxlength="1200" placeholder="Bias, struktur, liquidity, entry, SL/TP, news/session yang relevan. Jangan anggap AI melihat chart otomatis."></textarea>
+          </label>
+          <label>Prop firm &amp; kondisi akun
+            <input name="propfirm" maxlength="140" placeholder="Contoh: FundedNext Stellar 2-Step, akun $6.000">
+          </label>
+          <label>Aturan wajib / batas risiko
+            <textarea name="rules" rows="2" maxlength="800" placeholder="Daily/max loss, risk per trade, lot cap, news rules, minimum trading days, consistency rules..."></textarea>
+          </label>
+          <button type="submit" class="gemini-submit">Analisis pro &amp; kontra</button>
+          <p class="gemini-privacy">Prompt dikirim ke Gemini melalui server. Jangan masukkan password, API key, atau data akun rahasia.</p>
+        </form>
+        <div id="gemini-trade-result" class="gemini-trade-result" role="status" aria-live="polite" hidden></div>
+      </details>
       <div class="insights-actions"><a href="#calendar-panel">Buka kalender lengkap <span aria-hidden="true">↗</span></a><button type="button" id="insights-show-news">Lihat berita prioritas</button></div>
       <p class="insights-source-note">Sumber jadwal: BLS. Berita diambil dari feed yang tersedia di Trade Lens. Data yang tidak tersedia tidak akan ditebak.</p>
     </section>
