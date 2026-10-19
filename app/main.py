@@ -1,5 +1,6 @@
 """Entry point. Jalankan: uvicorn app.main:app --workers 1"""
 import asyncio
+import base64
 import json
 import math
 
