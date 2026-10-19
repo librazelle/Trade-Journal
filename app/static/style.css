@@ -676,10 +676,16 @@ button:active { transform: translateY(1px); }
 .storage-status { font-size: 10px; }
 .local-record strong { letter-spacing: -.015em; }
 .local-record p { font-family: var(--mono); font-size: 11px; }
-@media (min-width: 900px) {
+@media (min-width: 1100px) {
   .layout { grid-template-columns: minmax(260px,.9fr) minmax(300px,1fr) minmax(340px,1.1fr); align-items: start; }
   .pane { position: relative; }
   .priority-news-panel { padding: 17px; }
+}
+
+/* Between tablet and desktop, tab mode is active: the selected pane must use the full grid width. */
+@media (min-width: 900px) and (max-width: 1099px) {
+  .layout > [data-tab] { grid-column: 1 / -1; width: 100%; min-width: 0; }
+  .layout > [data-tab] > * { min-width: 0; }
 }
 @media (max-width: 600px) {
   body { font-size: 13px; }
