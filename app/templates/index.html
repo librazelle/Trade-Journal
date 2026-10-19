@@ -182,25 +182,62 @@
       <h2 id="trade-validator-title">AI Chart Review <span class="muted">· upload analisis lu</span></h2>
       <p class="muted">Upload screenshot chart yang sudah lu tandai. AI akan meninjau struktur, liquidity, POI/FVG, konfirmasi entry, dan risiko yang terlihat. Ini review visual, bukan backtest statistik otomatis.</p>
       <form id="chart-review-form" class="form chart-review-form" enctype="multipart/form-data">
-        <label class="chart-upload-zone" for="chart-review-image">
-          <span class="chart-upload-icon" aria-hidden="true">＋</span>
-          <strong id="chart-upload-title">Pilih foto chart</strong>
-          <span class="muted">PNG, JPG, atau WebP · maksimal 8 MB</span>
-          <input id="chart-review-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" required>
-        </label>
-        <img id="chart-review-preview" class="chart-review-preview" alt="Preview screenshot chart" hidden>
+        <p class="muted chart-review-hint">Upload sampai 4 screenshot. Pilih timeframe untuk tiap gambar; AI akan membaca konteks ICT 2022 Bootcamp lintas timeframe. Upload yang tersedia saja, tidak wajib lengkap.</p>
+        <div class="chart-timeframe-grid">
+          <section class="chart-timeframe-slot">
+            <label for="chart-tf-1">Chart 1 · Timeframe</label>
+            <select id="chart-tf-1" name="timeframe_1">
+              <option value="4H" selected>4H · Bias / dealing range</option><option value="1D">1D · Daily context</option><option value="1H">1H · Bias / POI</option><option value="30M">30M</option><option value="15M">15M · Setup</option><option value="5M">5M · MSS / FVG</option><option value="3M">3M</option><option value="1M">1M · Entry trigger</option>
+            </select>
+            <label class="chart-upload-zone" for="chart-file-1">
+              <span class="chart-upload-icon" aria-hidden="true">＋</span><strong id="chart-upload-title-1">Upload screenshot</strong><span class="muted">PNG, JPG, WebP · maks. 8 MB</span>
+              <input id="chart-file-1" name="chart_1" type="file" accept="image/png,image/jpeg,image/webp">
+            </label>
+            <img id="chart-preview-1" class="chart-review-preview" alt="Preview chart 1" hidden>
+          </section>
+          <section class="chart-timeframe-slot">
+            <label for="chart-tf-2">Chart 2 · Timeframe</label>
+            <select id="chart-tf-2" name="timeframe_2">
+              <option value="4H">4H · Bias / dealing range</option><option value="1D">1D · Daily context</option><option value="1H" selected>1H · Bias / POI</option><option value="30M">30M</option><option value="15M">15M · Setup</option><option value="5M">5M · MSS / FVG</option><option value="3M">3M</option><option value="1M">1M · Entry trigger</option>
+            </select>
+            <label class="chart-upload-zone" for="chart-file-2">
+              <span class="chart-upload-icon" aria-hidden="true">＋</span><strong id="chart-upload-title-2">Upload screenshot</strong><span class="muted">PNG, JPG, WebP · maks. 8 MB</span>
+              <input id="chart-file-2" name="chart_2" type="file" accept="image/png,image/jpeg,image/webp">
+            </label>
+            <img id="chart-preview-2" class="chart-review-preview" alt="Preview chart 2" hidden>
+          </section>
+          <section class="chart-timeframe-slot">
+            <label for="chart-tf-3">Chart 3 · Timeframe</label>
+            <select id="chart-tf-3" name="timeframe_3">
+              <option value="4H">4H · Bias / dealing range</option><option value="1D">1D · Daily context</option><option value="1H">1H · Bias / POI</option><option value="30M">30M</option><option value="15M" selected>15M · Setup</option><option value="5M">5M · MSS / FVG</option><option value="3M">3M</option><option value="1M">1M · Entry trigger</option>
+            </select>
+            <label class="chart-upload-zone" for="chart-file-3">
+              <span class="chart-upload-icon" aria-hidden="true">＋</span><strong id="chart-upload-title-3">Upload screenshot</strong><span class="muted">PNG, JPG, WebP · maks. 8 MB</span>
+              <input id="chart-file-3" name="chart_3" type="file" accept="image/png,image/jpeg,image/webp">
+            </label>
+            <img id="chart-preview-3" class="chart-review-preview" alt="Preview chart 3" hidden>
+          </section>
+          <section class="chart-timeframe-slot">
+            <label for="chart-tf-4">Chart 4 · Timeframe</label>
+            <select id="chart-tf-4" name="timeframe_4">
+              <option value="4H">4H · Bias / dealing range</option><option value="1D">1D · Daily context</option><option value="1H">1H · Bias / POI</option><option value="30M">30M</option><option value="15M">15M · Setup</option><option value="5M" selected>5M · MSS / FVG</option><option value="3M">3M</option><option value="1M">1M · Entry trigger</option>
+            </select>
+            <label class="chart-upload-zone" for="chart-file-4">
+              <span class="chart-upload-icon" aria-hidden="true">＋</span><strong id="chart-upload-title-4">Upload screenshot</strong><span class="muted">PNG, JPG, WebP · maks. 8 MB</span>
+              <input id="chart-file-4" name="chart_4" type="file" accept="image/png,image/jpeg,image/webp">
+            </label>
+            <img id="chart-preview-4" class="chart-review-preview" alt="Preview chart 4" hidden>
+          </section>
+        </div>
         <div class="fields-2">
           <label>Instrumen
             <select name="instrument"><option value="NASDAQ100">NASDAQ100</option><option value="XAUUSD">XAUUSD / Gold</option><option value="SP500">S&amp;P 500</option><option value="OTHER">Lainnya</option></select>
           </label>
-          <label>Timeframe chart
-            <select name="timeframe"><option value="Multi-timeframe">Multi-timeframe</option><option value="1m">M1</option><option value="3m">M3</option><option value="5m">M5</option><option value="15m">M15</option><option value="30m">M30</option><option value="1h">H1</option><option value="4h">H4</option></select>
+          <label>Model analisis
+            <select name="framework"><option value="ICT 2022 Bootcamp" selected>ICT 2022 Bootcamp</option></select>
           </label>
         </div>
-        <label>Catatan opsional
-          <textarea name="context" rows="2" maxlength="500" placeholder="Contoh: bias H1 bearish, entry rencana setelah sweep + MSS, target sell-side liquidity."></textarea>
-        </label>
-        <button type="submit" id="chart-review-submit">Analisis screenshot dengan AI</button>
+        <button type="submit" id="chart-review-submit">Analisis multi-timeframe dengan AI</button>
       </form>
       <p id="chart-review-empty" class="muted">Hasil review akan muncul di sini. Untuk menghitung win rate, expectancy, atau drawdown, dibutuhkan data candle historis dan aturan strategi yang bisa diuji.</p>
       <div id="chart-review-result" class="validator-result chart-review-result" role="status" aria-live="polite" hidden></div>
