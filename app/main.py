@@ -660,7 +660,7 @@ async def gemini_trade_review(
 
     candidates = data.get("candidates", [])
     parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
-    analysis = "\\n".join(
+    analysis = "\n".join(
         part.get("text", "") for part in parts
         if isinstance(part, dict) and isinstance(part.get("text"), str)
     ).strip()
