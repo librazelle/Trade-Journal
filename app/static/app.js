@@ -828,6 +828,110 @@
     instrumentSelect.addEventListener("change", showEventLab);
   }
 
+  // ---------- Market Insights: concise weekly context from existing sources ----------
+  const insightsPanel = document.getElementById("market-insights");
+  if (insightsPanel) initMarketInsights(insightsPanel);
+
+  function initMarketInsights(panel) {
+    const $ = selector => panel.querySelector(selector);
+    const weekLabel = $("#insights-week-label");
+    const updated = $("#insights-updated");
+    const eventCount = $("#insights-event-count");
+    const highCount = $("#insights-high-count");
+    const newsCount = $("#insights-news-count");
+    const nextEvent = $("#insights-next-event");
+    const headlines = $("#insights-headlines");
+    const pad = n => String(n).padStart(2, "0");
+    const dateLabel = date => new Intl.DateTimeFormat("id-ID", {
+      timeZone: "Asia/Jakarta", day: "numeric", month: "short"
+    }).format(date);
+    const weekBounds = () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const day = (start.getDay() + 6) % 7;
+      start.setDate(start.getDate() - day);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+      return { start, end };
+    };
+    const bounds = weekBounds();
+    weekLabel.textContent = "· " + dateLabel(bounds.start) + "–" + dateLabel(new Date(bounds.end.getTime() - 86400000));
+    const parseTime = event => Date.parse(event.scheduled_at_utc || "");
+    const renderEvents = events => {
+      const weekEvents = events.filter(event => {
+        const time = parseTime(event);
+        return Number.isFinite(time) && time >= bounds.start.getTime() && time < bounds.end.getTime();
+      }).sort((a,b) => parseTime(a)-parseTime(b));
+      eventCount.textContent = String(weekEvents.length);
+      highCount.textContent = String(weekEvents.filter(event => event.impact === "high").length);
+      const upcoming = weekEvents.filter(event => parseTime(event) >= Date.now());
+      nextEvent.replaceChildren();
+      if (upcoming.length) {
+        const event = upcoming[0];
+        const kicker = document.createElement("span");
+        kicker.className = "insights-next-label";
+        kicker.textContent = "EVENT BERIKUTNYA · " + (event.impact || "unknown").toUpperCase();
+        const title = document.createElement("strong");
+        title.textContent = event.name || "Rilis ekonomi";
+        const detail = document.createElement("p");
+        detail.textContent = dateLabel(new Date(parseTime(event))) + " · " + new Intl.DateTimeFormat("id-ID", { timeZone:"Asia/Jakarta", hour:"2-digit", minute:"2-digit", hour12:false }).format(new Date(parseTime(event))) + " WIB · jadwal BLS";
+        nextEvent.append(kicker,title,detail);
+      } else {
+        const empty = document.createElement("p");
+        empty.className = "insights-empty";
+        empty.textContent = weekEvents.length ? "Tidak ada event tersisa minggu ini dalam jadwal BLS yang tersedia." : "Belum ada event BLS untuk minggu ini pada data yang tersedia.";
+        nextEvent.appendChild(empty);
+      }
+    };
+    fetch("/api/calendar", { cache:"no-store" })
+      .then(response => { if (!response.ok) throw new Error("HTTP " + response.status); return response.json(); })
+      .then(payload => {
+        renderEvents(payload.events || []);
+        updated.textContent = payload.stale ? "Jadwal cache lama" : "Jadwal dimuat";
+      })
+      .catch(() => {
+        eventCount.textContent = "—";
+        highCount.textContent = "—";
+        nextEvent.textContent = "Jadwal BLS tidak tersedia; ringkasan event belum bisa dibuat.";
+        updated.textContent = "Jadwal gagal dimuat";
+      });
+
+    const priorityItems = [...document.querySelectorAll(".priority-news-item")].slice(0, 3);
+    newsCount.textContent = String(document.querySelectorAll(".priority-news-item").length);
+    if (!priorityItems.length) {
+      const empty = document.createElement("p");
+      empty.className = "insights-empty";
+      empty.textContent = "Belum ada berita prioritas yang tersedia. Ini bukan berarti tidak ada risiko pasar.";
+      headlines.appendChild(empty);
+    } else {
+      priorityItems.forEach(item => {
+        const sourceTitle = item.querySelector("h3 a, h3");
+        if (!sourceTitle) return;
+        const link = document.createElement("a");
+        link.className = "insights-headline";
+        link.textContent = sourceTitle.textContent.trim();
+        link.href = sourceTitle.matches("a") ? sourceTitle.href : "#";
+        if (link.href === window.location.href + "#") link.removeAttribute("href");
+        if (sourceTitle.matches("a")) { link.target = "_blank"; link.rel = "noopener noreferrer"; }
+        const metaSource = item.querySelector(".priority-news-meta");
+        if (metaSource) {
+          const meta = document.createElement("span");
+          meta.className = "insights-headline-meta";
+          meta.textContent = metaSource.textContent.trim();
+          link.prepend(meta);
+        }
+        headlines.appendChild(link);
+      });
+    }
+    const showNews = $("#insights-show-news");
+    if (showNews) showNews.addEventListener("click", () => {
+      const newsTab = document.querySelector('[data-tab-target="news"]');
+      if (newsTab) newsTab.click();
+      const priority = document.querySelector(".priority-news-panel");
+      if (priority) priority.scrollIntoView({ behavior:"smooth", block:"start" });
+    });
+  }
+
   // ---------- Kalender ekonomi AS (jadwal resmi BLS) ----------
   const calendarPanel = document.getElementById("calendar-panel");
   if (calendarPanel) initCalendar(calendarPanel);
