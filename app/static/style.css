@@ -1464,3 +1464,28 @@ button[data-market-symbol].active { color:var(--ink); border-color:var(--ink); }
   .insight-stat strong { font-size:18px; }
   .insights-status { max-width:78px; }
 }
+
+
+/* Gemini Trade Copilot: short, structured, token-conscious output. */
+.gemini-copilot { margin:14px 0 8px; border:1px solid var(--rule); border-radius:8px; background:rgba(8,12,17,.28); overflow:hidden; }
+.gemini-copilot > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; cursor:pointer; list-style:none; }
+.gemini-copilot > summary::-webkit-details-marker { display:none; }
+.gemini-copilot > summary strong { display:block; font-size:13px; }
+.gemini-copilot > summary small { display:block; margin-top:3px; color:var(--muted); font-size:10px; line-height:1.4; }
+.gemini-label { flex:0 0 auto; padding:4px 7px; border:1px solid rgba(217,173,101,.4); border-radius:4px; color:#d9ad65; font:600 9px/1 var(--mono); }
+.gemini-trade-form { display:grid; gap:10px; padding:0 12px 12px; }
+.gemini-trade-form label { display:grid; gap:5px; color:var(--muted); font-size:11px; }
+.gemini-trade-form input, .gemini-trade-form select, .gemini-trade-form textarea { width:100%; min-width:0; padding:10px; border:1px solid var(--rule); border-radius:5px; background:var(--bg); color:var(--ink); font:inherit; font-size:12px; line-height:1.45; }
+.gemini-trade-form textarea { resize:vertical; }
+.gemini-trade-form input:focus-visible, .gemini-trade-form select:focus-visible, .gemini-trade-form textarea:focus-visible { outline:1px solid #d9ad65; outline-offset:1px; }
+.gemini-submit { min-height:42px; border:1px solid rgba(217,173,101,.55); border-radius:5px; background:rgba(217,173,101,.1); color:var(--ink); font-size:12px; font-weight:650; cursor:pointer; }
+.gemini-submit:disabled { opacity:.55; cursor:wait; }
+.gemini-privacy { margin:0; color:var(--muted); font-size:9px; line-height:1.45; }
+.gemini-trade-result { margin:0 12px 12px; padding:12px; border-left:2px solid #d9ad65; background:var(--surface); color:var(--ink); font-size:12px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
+.gemini-trade-result[data-state="error"] { border-left-color:#d96b6b; }
+@media (max-width:1099px) {
+  .gemini-copilot { margin-top:11px; }
+  .gemini-trade-form { gap:9px; }
+  .gemini-trade-form input, .gemini-trade-form select, .gemini-trade-form textarea { font-size:16px; }
+  .gemini-trade-result { font-size:12px; }
+}
