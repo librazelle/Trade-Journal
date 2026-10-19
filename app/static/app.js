@@ -828,6 +828,37 @@
     instrumentSelect.addEventListener("change", showEventLab);
   }
 
+  // ---------- Gemini Trade Copilot ----------
+  const geminiTradeForm = document.getElementById("gemini-trade-form");
+  const geminiTradeResult = document.getElementById("gemini-trade-result");
+  if (geminiTradeForm && geminiTradeResult) {
+    geminiTradeForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = geminiTradeForm.querySelector('button[type="submit"]');
+      button.disabled = true;
+      geminiTradeResult.hidden = false;
+      geminiTradeResult.dataset.state = "loading";
+      geminiTradeResult.textContent = "Menganalisis setup dan aturan yang diberikan…";
+      try {
+        const response = await fetch("/api/gemini/trade-review", {
+          method: "POST",
+          body: new FormData(geminiTradeForm),
+          headers: { "Accept": "application/json" },
+          cache: "no-store"
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.detail || "Analisis gagal (HTTP " + response.status + ")");
+        geminiTradeResult.dataset.state = "success";
+        geminiTradeResult.textContent = data.analysis || "Gemini tidak mengembalikan analisis.";
+      } catch (error) {
+        geminiTradeResult.dataset.state = "error";
+        geminiTradeResult.textContent = error.message || "Tidak bisa menghubungi Gemini.";
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
   // ---------- Market Insights: concise weekly context from existing sources ----------
   const insightsPanel = document.getElementById("market-insights");
   if (insightsPanel) initMarketInsights(insightsPanel);
