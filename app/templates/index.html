@@ -32,7 +32,23 @@
 
   <section class="calendar-panel" id="calendar-panel" data-tab="calendar">
     <h2>Kalender ekonomi AS <span id="calendar-status" class="muted">memuat jadwal BLS</span></h2>
-    <p class="muted calendar-note">Jadwal resmi BLS. Waktu dalam WIB dan US Eastern. Forecast dan actual belum tersedia.</p>
+    <p class="muted calendar-note">Jadwal resmi BLS yang tersedia. Waktu dalam WIB dan US Eastern; cakupan tidak mewakili semua kalender ekonomi.</p>
+    <section class="market-insights" id="market-insights" aria-labelledby="market-insights-title">
+      <div class="market-insights-heading">
+        <div><span class="market-insights-eyebrow">WEEKLY BRIEFING</span><h3 id="market-insights-title">Market Insights <span id="insights-week-label" class="muted">· minggu ini</span></h3></div>
+        <span id="insights-updated" class="insights-status">Mengumpulkan data</span>
+      </div>
+      <p class="market-insights-intro">Ringkasan jadwal resmi dan berita yang tersedia. Ini konteks persiapan, bukan prediksi arah harga atau sinyal entry.</p>
+      <div class="insights-stats" aria-live="polite">
+        <div class="insight-stat"><span>Event minggu ini</span><strong id="insights-event-count">—</strong></div>
+        <div class="insight-stat"><span>Event berdampak tinggi</span><strong id="insights-high-count">—</strong></div>
+        <div class="insight-stat"><span>Berita prioritas</span><strong id="insights-news-count">—</strong></div>
+      </div>
+      <div class="insights-next" id="insights-next-event"><span class="muted">Menunggu jadwal kalender…</span></div>
+      <div class="insights-headlines" id="insights-headlines"></div>
+      <div class="insights-actions"><a href="#calendar-panel">Buka kalender lengkap <span aria-hidden="true">↗</span></a><button type="button" id="insights-show-news">Lihat berita prioritas</button></div>
+      <p class="insights-source-note">Sumber jadwal: BLS. Berita diambil dari feed yang tersedia di Trade Lens. Data yang tidak tersedia tidak akan ditebak.</p>
+    </section>
     <div class="calendar-next" id="calendar-next" aria-live="polite"></div>
     <div class="calendar-list" id="calendar-list"></div>
   </section>
