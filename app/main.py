@@ -595,14 +595,14 @@ async def gemini_chart_review(
     selected_tf = timeframe if timeframe in allowed_timeframes else "Multi-timeframe"
     user_context = context.strip()[:500]
     prompt = (
-        "Tinjau screenshot chart trading yang diunggah sebagai reviewer kritis, bukan pemberi sinyal.\\n"
-        f"Instrumen: {selected}. Timeframe yang dipilih pengguna: {selected_tf}.\\n"
-        f"Catatan pengguna: {user_context or 'Tidak ada catatan.'}\\n"
-        "Jawab dalam Bahasa Indonesia dengan format ringkas:\\n"
-        "1. APA YANG TERLIHAT: jelaskan struktur dan level hanya jika benar-benar terbaca.\\n"
-        "2. CEK SETUP: evaluasi bias/struktur, liquidity sweep, displacement, MSS/CISD, FVG/POI, dan entry/SL/TP jika tampak. Tandai yang tidak terlihat sebagai TIDAK DAPAT DIVERIFIKASI.\\n"
-        "3. RISIKO / KONTRADIKSI: tunjukkan bukti yang kurang, asumsi lemah, atau bagian yang bertentangan.\\n"
-        "4. KESIMPULAN: setup belum cukup bukti / perlu konfirmasi / konsisten secara visual; jangan menyebutnya pasti valid.\\n"
+        "Tinjau screenshot chart trading yang diunggah sebagai reviewer kritis, bukan pemberi sinyal.\n"
+        f"Instrumen: {selected}. Timeframe yang dipilih pengguna: {selected_tf}.\n"
+        f"Catatan pengguna: {user_context or 'Tidak ada catatan.'}\n"
+        "Jawab dalam Bahasa Indonesia dengan format ringkas:\n"
+        "1. APA YANG TERLIHAT: jelaskan struktur dan level hanya jika benar-benar terbaca.\n"
+        "2. CEK SETUP: evaluasi bias/struktur, liquidity sweep, displacement, MSS/CISD, FVG/POI, dan entry/SL/TP jika tampak. Tandai yang tidak terlihat sebagai TIDAK DAPAT DIVERIFIKASI.\n"
+        "3. RISIKO / KONTRADIKSI: tunjukkan bukti yang kurang, asumsi lemah, atau bagian yang bertentangan.\n"
+        "4. KESIMPULAN: setup belum cukup bukti / perlu konfirmasi / konsisten secara visual; jangan menyebutnya pasti valid.\n"
         "Jangan menebak angka harga yang tidak terbaca. Jangan mengarang candle, tanggal, news, harga live, atau hasil trade. "
         "Jangan memberi win rate atau probabilitas dari satu gambar. Screenshot statis tidak cukup untuk menghitung backtest, "
         "expectancy, drawdown, atau profitabilitas. Jelaskan data historis yang dibutuhkan jika pengguna meminta statistik. "
@@ -642,7 +642,7 @@ async def gemini_chart_review(
 
     candidates = data.get("candidates", [])
     parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
-    analysis = "\\n".join(
+    analysis = "\n".join(
         part.get("text", "") for part in parts
         if isinstance(part, dict) and isinstance(part.get("text"), str)
     ).strip()
