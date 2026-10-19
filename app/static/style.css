@@ -1924,3 +1924,56 @@ button:active { transform: scale(.975); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+
+/* Compact image-first AI chart review form. */
+.chart-review-form { gap: 14px; }
+.chart-upload-zone {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 24px 14px;
+  border: 1px dashed rgba(169, 204, 255, .46);
+  border-radius: 16px;
+  text-align: center;
+  background: linear-gradient(145deg, rgba(118,164,241,.1), rgba(99,207,203,.035));
+  cursor: pointer;
+}
+.chart-upload-zone input[type="file"] {
+  width: 100%;
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 13px;
+}
+.chart-upload-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(169,204,255,.3);
+  border-radius: 13px;
+  background: rgba(118,164,241,.12);
+  color: var(--ink);
+  font-size: 26px;
+  line-height: 1;
+}
+.chart-review-preview {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border: 1px solid var(--glass-border, rgba(206,224,255,.17));
+  border-radius: 14px;
+  background: #080b10;
+}
+.chart-review-preview[hidden] { display: none; }
+.chart-review-result .chart-review-analysis {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+}
+.chart-review-result > p { color: var(--muted); font-size: 13px; }
+@media (max-width: 600px) {
+  .chart-upload-zone { padding: 19px 12px; }
+  .chart-review-preview { max-height: 280px; }
+}
