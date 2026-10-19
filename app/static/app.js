@@ -61,21 +61,12 @@
   function initMarketClock(root) {
     const readout = root.querySelector("#clock-readout");
     const buttons = [...root.querySelectorAll("[data-clock-view]")];
-    const STORAGE_KEY = "tradeLensDrawdownInputs";
     const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
-    let view = "drawdown";
-    let drawdown = { balance: "", equity: "" };
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-      if (saved && typeof saved === "object") drawdown = { ...drawdown, ...saved };
-    } catch (_) {}
+    let view = "reminder";
 
     const escapeText = value => String(value).replace(/[&<>"']/g, char => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     })[char]);
-    const formatMoney = value => new Intl.NumberFormat("en-US", {
-      style: "currency", currency: "USD", maximumFractionDigits: 2
-    }).format(value);
     const formatClock = (date, zone, withSeconds = true) => new Intl.DateTimeFormat("id-ID", {
       timeZone: zone, hour: "2-digit", minute: "2-digit",
       ...(withSeconds ? { second: "2-digit" } : {}),
@@ -151,33 +142,17 @@
         button.setAttribute("aria-pressed", String(active));
       });
       const now = new Date();
-      if (view === "drawdown") {
-        const balance = Number(drawdown.balance);
-        const equity = Number(drawdown.equity);
-        const valid = drawdown.balance !== "" && drawdown.equity !== "" &&
-          Number.isFinite(balance) && Number.isFinite(equity) && balance > 0;
-        const dd = valid ? Math.max(0, balance - equity) : 0;
-        const pct = valid ? dd / balance * 100 : 0;
-        const above = valid && equity > balance;
+      if (view === "reminder") {
         readout.innerHTML = `
-          <div class="clock-label">Drawdown tracker <span>· lokal di perangkat</span></div>
-          <div class="drawdown-fields">
-            <label>Balance acuan (USD)<input id="dd-balance" inputmode="decimal" type="number" min="0" step="any" value="${escapeText(drawdown.balance)}"></label>
-            <label>Equity sekarang (USD)<input id="dd-equity" inputmode="decimal" type="number" min="0" step="any" value="${escapeText(drawdown.equity)}"></label>
-          </div>
-          <div class="clock-result">
-            <strong>${valid ? (above ? "+" + formatMoney(equity - balance) : "-" + formatMoney(dd)) : "Isi angka valid"}</strong>
-            <span>${valid ? (above ? "Di atas balance acuan" : "Drawdown " + pct.toFixed(2) + "%") : "Balance acuan harus lebih dari 0"}</span>
-          </div>
-          <p class="clock-footnote">Hitungan sederhana dari balance acuan ke equity. Bukan data otomatis dari MetaTrader.</p>`;
-        ["dd-balance", "dd-equity"].forEach(id => {
-          const input = readout.querySelector("#" + id);
-          input.addEventListener("change", () => {
-            drawdown[id === "dd-balance" ? "balance" : "equity"] = input.value;
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(drawdown)); } catch (_) {}
-            render();
-          });
-        });
+          <div class="clock-label">Checklist sebelum entry <span>· pengingat, bukan sinyal</span></div>
+          <ul class="pre-entry-reminders">
+            <li><strong>Bias:</strong> tentukan arah HTF dan level penting sebelum mencari entry.</li>
+            <li><strong>Likuiditas &amp; struktur:</strong> tunggu sweep/reaksi dan konfirmasi setup di timeframe eksekusi.</li>
+            <li><strong>Berita &amp; sesi:</strong> cek kalender, waktu rilis, spread, dan volatilitas.</li>
+            <li><strong>Risk:</strong> hitung lot dari SL dan risiko yang diizinkan; cek daily/max loss akun.</li>
+            <li><strong>Invalidasi:</strong> tentukan level SL, target, dan kondisi yang membatalkan ide sebelum entry.</li>
+          </ul>
+          <p class="clock-footnote">Checklist umum. Ikuti aturan profil akun dan jurnal strategi sendiri; jangan entry hanya karena semua kotak tercentang.</p>`;
         return;
       }
       const session = sessions[view];
@@ -437,6 +412,85 @@
       if (button) setTab(button.dataset.tabTarget);
     });
     setTab(layout.dataset.activeTab || "calendar");
+  }
+
+  // ---------- Submenu Jurnal: show one work area at a time ----------
+  const journalPane = document.querySelector('.pane[data-tab="journal"]');
+  if (journalPane) {
+    const journalButtons = [...journalPane.querySelectorAll("[data-journal-target]")];
+    const journalSections = [...journalPane.querySelectorAll("[data-journal-section]")];
+    const setJournalSection = name => {
+      journalPane.dataset.activeJournalSection = name;
+      journalButtons.forEach(button => {
+        const active = button.dataset.journalTarget === name;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", String(active));
+      });
+      journalSections.forEach(section => {
+        section.hidden = section.dataset.journalSection !== name;
+      });
+    };
+    journalButtons.forEach(button => button.addEventListener("click", () => setJournalSection(button.dataset.journalTarget)));
+    setJournalSection("trade");
+  }
+
+  // ---------- Prop-firm profile templates stored locally ----------
+  const copilotForm = document.getElementById("gemini-trade-form");
+  if (copilotForm) {
+    const profileSelect = document.getElementById("account-profile-select");
+    const saveProfileButton = document.getElementById("account-profile-save");
+    const deleteProfileButton = document.getElementById("account-profile-delete");
+    const profileKey = "tradeLensAccountProfilesV1";
+    const profileFields = ["profile_name","account_type","propfirm","account_size","daily_loss_limit","max_loss_limit","other_rules"];
+    const getProfiles = () => {
+      try {
+        const value = JSON.parse(localStorage.getItem(profileKey) || "[]");
+        return Array.isArray(value) ? value.filter(item => item && typeof item.id === "string") : [];
+      } catch (_) { return []; }
+    };
+    const setProfiles = profiles => {
+      try { localStorage.setItem(profileKey, JSON.stringify(profiles)); }
+      catch (_) { alert("Profil tidak bisa disimpan di browser ini."); }
+    };
+    const field = name => copilotForm.elements.namedItem(name);
+    const currentProfile = () => Object.fromEntries(profileFields.map(name => [name, field(name)?.value || ""]));
+    const renderProfiles = selectedId => {
+      const profiles = getProfiles();
+      profileSelect.replaceChildren(new Option("Profil baru / belum disimpan", ""));
+      profiles.forEach(profile => profileSelect.add(new Option(profile.profile_name || profile.propfirm || "Profil tanpa nama", profile.id)));
+      if (selectedId && profiles.some(profile => profile.id === selectedId)) profileSelect.value = selectedId;
+      deleteProfileButton.disabled = !profileSelect.value;
+    };
+    const fillProfile = profile => {
+      profileFields.forEach(name => { if (field(name)) field(name).value = profile?.[name] || ""; });
+      if (field("account_type") && profile?.account_type) field("account_type").value = profile.account_type;
+      deleteProfileButton.disabled = !profile?.id;
+    };
+    renderProfiles();
+    profileSelect.addEventListener("change", () => {
+      const selected = getProfiles().find(profile => profile.id === profileSelect.value);
+      fillProfile(selected || null);
+    });
+    saveProfileButton.addEventListener("click", () => {
+      const profile = currentProfile();
+      if (!profile.profile_name.trim()) { field("profile_name").focus(); alert("Isi nama profil dulu."); return; }
+      const profiles = getProfiles();
+      const id = profileSelect.value || (crypto.randomUUID ? crypto.randomUUID() : "profile-" + Date.now());
+      const record = { ...profile, id, updatedAt: new Date().toISOString() };
+      const index = profiles.findIndex(item => item.id === id);
+      if (index >= 0) profiles[index] = record; else profiles.push(record);
+      setProfiles(profiles);
+      renderProfiles(id);
+      alert("Template profil disimpan di browser ini.");
+    });
+    deleteProfileButton.addEventListener("click", () => {
+      const id = profileSelect.value;
+      if (!id) return;
+      const profiles = getProfiles().filter(profile => profile.id !== id);
+      setProfiles(profiles);
+      fillProfile(null);
+      renderProfiles();
+    });
   }
 
   // ---------- Tombol segmen (Long/Short, Naik/Turun) ----------

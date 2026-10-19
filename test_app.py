@@ -27,7 +27,11 @@ def test_dashboard_renders(client):
     assert "data-news-filter=\"inflation\"" in r.text
     assert "data-news-filter=\"jobs\"" in r.text
     assert "External Research" in r.text
-    assert "data-clock-view=\"drawdown\"" in r.text
+    assert "data-clock-view=\"reminder\"" in r.text
+    assert "Checklist sebelum entry" in r.text
+    assert "account-profile-select" in r.text
+    assert "data-journal-target=\"trade\"" in r.text
+    assert "data-journal-target=\"history\"" in r.text
     assert "data-clock-view=\"asia\"" in r.text
     assert "data-clock-view=\"europe\"" in r.text
     assert "data-clock-view=\"newyork\"" in r.text

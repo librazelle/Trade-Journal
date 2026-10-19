@@ -1489,3 +1489,24 @@ button[data-market-symbol].active { color:var(--ink); border-color:var(--ink); }
   .gemini-trade-form input, .gemini-trade-form select, .gemini-trade-form textarea { font-size:16px; }
   .gemini-trade-result { font-size:12px; }
 }
+
+
+/* Account profile templates and pre-entry reminder checklist. */
+.account-profile-editor { display:grid; gap:9px; padding:11px; border:1px solid var(--rule); border-radius:7px; background:rgba(8,12,17,.25); }
+.profile-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; }
+.profile-heading .muted { font-size:10px; }
+.profile-actions { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.7fr); gap:7px; }
+.profile-actions button { min-height:38px; padding:7px; font-size:11px; }
+.profile-actions button:disabled { opacity:.45; cursor:not-allowed; }
+.pre-entry-reminders { display:grid; gap:8px; margin:2px 0; padding-left:19px; color:var(--muted); font-size:12px; line-height:1.5; }
+.pre-entry-reminders strong { color:var(--ink); }
+.journal-subnav { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; margin:0 0 15px; padding:4px; border:1px solid var(--rule); border-radius:7px; background:var(--surface); }
+.journal-subnav button { min-width:0; min-height:40px; padding:7px 3px; border:1px solid transparent; border-radius:5px; background:transparent; color:var(--muted); font-size:11px; font-weight:600; overflow-wrap:anywhere; }
+.journal-subnav button.active { border-color:rgba(217,173,101,.4); background:rgba(217,173,101,.09); color:var(--ink); }
+.journal-subnav button:focus-visible { outline:1px solid #d9ad65; outline-offset:1px; }
+.pane[data-tab="journal"] > [data-journal-section][hidden] { display:none !important; }
+@media (max-width:380px) {
+  .journal-subnav { gap:2px; }
+  .journal-subnav button { font-size:10px; padding-inline:1px; }
+  .profile-actions { grid-template-columns:1fr; }
+}
