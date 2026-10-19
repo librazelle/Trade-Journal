@@ -1145,45 +1145,59 @@
     applyNewsFilter();
   });
 
-  // ---------- AI screenshot chart review ----------
+  // ---------- ICT multi-timeframe chart review ----------
   const chartReviewForm = document.getElementById("chart-review-form");
-  const chartReviewImage = document.getElementById("chart-review-image");
-  const chartReviewPreview = document.getElementById("chart-review-preview");
-  const chartReviewTitle = document.getElementById("chart-upload-title");
   const chartReviewResult = document.getElementById("chart-review-result");
   const chartReviewEmpty = document.getElementById("chart-review-empty");
-  if (chartReviewForm && chartReviewImage && chartReviewResult) {
-    chartReviewImage.addEventListener("change", () => {
-      const file = chartReviewImage.files && chartReviewImage.files[0];
-      if (!file) {
-        chartReviewPreview.hidden = true;
-        chartReviewPreview.removeAttribute("src");
-        chartReviewTitle.textContent = "Pilih foto chart";
-        return;
-      }
-      chartReviewTitle.textContent = file.name;
-      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 8 * 1024 * 1024) {
-        chartReviewPreview.hidden = true;
-        chartReviewPreview.removeAttribute("src");
-        return;
-      }
-      chartReviewPreview.src = URL.createObjectURL(file);
-      chartReviewPreview.hidden = false;
-    });
+  if (chartReviewForm && chartReviewResult) {
+    for (let slot = 1; slot <= 4; slot += 1) {
+      const input = document.getElementById("chart-file-" + slot);
+      const preview = document.getElementById("chart-preview-" + slot);
+      const title = document.getElementById("chart-upload-title-" + slot);
+      if (!input || !preview || !title) continue;
+      input.addEventListener("change", () => {
+        const file = input.files && input.files[0];
+        if (!file) {
+          preview.hidden = true;
+          preview.removeAttribute("src");
+          title.textContent = "Upload screenshot";
+          return;
+        }
+        title.textContent = file.name;
+        if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 8 * 1024 * 1024) {
+          preview.hidden = true;
+          preview.removeAttribute("src");
+          title.textContent = file.name + " · format/ukuran tidak valid";
+          return;
+        }
+        preview.src = URL.createObjectURL(file);
+        preview.hidden = false;
+      });
+    }
     chartReviewForm.addEventListener("submit", async event => {
       event.preventDefault();
-      const file = chartReviewImage.files && chartReviewImage.files[0];
-      if (!file) return;
-      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 8 * 1024 * 1024) {
+      const files = [];
+      for (let slot = 1; slot <= 4; slot += 1) {
+        const input = document.getElementById("chart-file-" + slot);
+        const file = input && input.files && input.files[0];
+        if (!file) continue;
+        if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 8 * 1024 * 1024) {
+          chartReviewResult.hidden = false;
+          chartReviewResult.textContent = "Chart " + slot + ": pilih PNG, JPG, atau WebP maksimal 8 MB.";
+          return;
+        }
+        files.push(file);
+      }
+      if (!files.length) {
         chartReviewResult.hidden = false;
-        chartReviewResult.textContent = "Pilih gambar PNG, JPG, atau WebP berukuran maksimal 8 MB.";
+        chartReviewResult.textContent = "Upload minimal satu screenshot chart dulu.";
         return;
       }
       const button = document.getElementById("chart-review-submit");
       button.disabled = true;
       chartReviewResult.hidden = false;
       if (chartReviewEmpty) chartReviewEmpty.hidden = true;
-      chartReviewResult.textContent = "AI sedang membaca chart dan memeriksa batasan setup…";
+      chartReviewResult.textContent = "AI sedang menyatukan konteks ICT dari " + files.length + " timeframe…";
       try {
         const response = await fetch("/api/gemini/chart-review", {
           method: "POST", body: new FormData(chartReviewForm),
@@ -1192,9 +1206,9 @@
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.detail || ("HTTP " + response.status));
         const title = document.createElement("h3");
-        title.textContent = "Hasil AI Chart Review";
+        title.textContent = "ICT Multi-Timeframe Review";
         const note = document.createElement("p");
-        note.textContent = "Review visual, bukan hasil backtest terukur. Verifikasi level dan konteks langsung pada chart.";
+        note.textContent = "Analisis berdasarkan screenshot yang diunggah, bukan data harga live.";
         const content = document.createElement("div");
         content.className = "chart-review-analysis";
         content.textContent = data.analysis || "AI tidak mengembalikan hasil.";
