@@ -596,18 +596,20 @@ async def gemini_chart_review(
     selected_tf = timeframe if timeframe in allowed_timeframes else "Multi-timeframe"
     user_context = context.strip()[:500]
     prompt = (
-        "Tinjau screenshot chart trading yang diunggah sebagai reviewer kritis, bukan pemberi sinyal.\n"
-        f"Instrumen: {selected}. Timeframe yang dipilih pengguna: {selected_tf}.\n"
-        f"Catatan pengguna: {user_context or 'Tidak ada catatan.'}\n"
-        "Jawab dalam Bahasa Indonesia dengan format ringkas:\n"
-        "1. APA YANG TERLIHAT: jelaskan struktur dan level hanya jika benar-benar terbaca.\n"
-        "2. CEK SETUP: evaluasi bias/struktur, liquidity sweep, displacement, MSS/CISD, FVG/POI, dan entry/SL/TP jika tampak. Tandai yang tidak terlihat sebagai TIDAK DAPAT DIVERIFIKASI.\n"
-        "3. RISIKO / KONTRADIKSI: tunjukkan bukti yang kurang, asumsi lemah, atau bagian yang bertentangan.\n"
-        "4. KESIMPULAN: setup belum cukup bukti / perlu konfirmasi / konsisten secara visual; jangan menyebutnya pasti valid.\n"
-        "Jangan menebak angka harga yang tidak terbaca. Jangan mengarang candle, tanggal, news, harga live, atau hasil trade. "
-        "Jangan memberi win rate atau probabilitas dari satu gambar. Screenshot statis tidak cukup untuk menghitung backtest, "
-        "expectancy, drawdown, atau profitabilitas. Jelaskan data historis yang dibutuhkan jika pengguna meminta statistik. "
-        "Bila screenshot menampilkan kredensial atau informasi sensitif, jangan mengulanginya."
+        "Review screenshot chart secara singkat. Balas dalam Bahasa Indonesia, maksimal 110 kata. "
+        "Tanpa pengantar panjang, disclaimer berulang, atau definisi istilah. "
+        "Gunakan format persis ini:\\n"
+        "BIAS: satu kalimat tentang skenario paling masuk akal, atau NETRAL jika bukti kurang.\\n"
+        "ALASAN: maksimal dua bukti visual dan satu hal penting yang belum terkonfirmasi.\\n"
+        "DO: maksimal 3 tindakan konkret yang perlu ditunggu atau diperiksa sebelum entry.\\n"
+        "DONT: maksimal 2 hal yang harus dihindari.\\n"
+        f"Instrumen: {selected}. Timeframe pilihan: {selected_tf}.\\n"
+        f"Catatan pengguna (boleh kosong): {user_context or 'Tidak ada.'}\\n"
+        "Catatan pengguna adalah konteks, bukan bukti yang otomatis benar. Analisis hanya hal yang benar-benar tampak. "
+        "Jangan mengarang harga, timeframe yang tidak terbaca, candle, news, atau data live. "
+        "Jika sweep, MSS/CISD, displacement, FVG/POI, atau level tidak jelas, tulis singkat belum terkonfirmasi. "
+        "Jangan memberi win rate, probabilitas, klaim backtest, atau sinyal buy/sell pasti dari gambar. "
+        "Utamakan keputusan praktis: tunggu konfirmasi, setup belum matang, atau konsisten secara visual."
     )
     payload = {
         "systemInstruction": {"parts": [{"text": (
