@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block page_scripts %}<script src="/static/market-monitor.js?v=20261018-main-chart" defer></script>{% endblock %}
+{% block page_scripts %}<script src="/static/market-monitor.js?v=vela-lab-entry" defer></script>{% endblock %}
 {% block content %}
   <section class="market-monitor-panel" id="market-monitor">
     <div class="market-monitor-heading">
-      <div><h2>Market Monitor <span class="muted">· Nasdaq 100 / XAUUSD / S&amp;P 500</span></h2>
+      <div class="market-monitor-title"><h2>Market Monitor <span class="muted">· Nasdaq 100 / XAUUSD / S&amp;P 500</span></h2><a class="secondary-button" href="/static/vela-lab.html">Uji Vela Lab ↗</a>
       <p class="muted">Pilih instrumen dan timeframe. Data TradingView bisa tertunda dan bukan harga eksekusi broker.</p></div>
       <span id="market-feed-status" class="market-feed-status">MENYIAPKAN</span>
     </div>
