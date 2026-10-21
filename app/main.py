@@ -61,16 +61,34 @@ MARKET_SYMBOLS = {
     "SP500": {"ticker": "^GSPC", "label": "S&P 500", "source": "Yahoo Finance chart endpoint"},
 }
 
+# Process-local cache reduces upstream calls and preserves the last good candles during
+# temporary Yahoo failures. It is deliberately not described as a real-time feed.
+_MARKET_CACHE: dict[tuple[str, str], dict] = {}
+_MARKET_CACHE_TTL_SECONDS = 60
+_MARKET_STALE_MAX_SECONDS = 1800
+
 
 @app.get("/api/market-monitor/{instrument}")
 async def market_monitor(instrument: str, interval: str = "1m"):
-    """Return public chart candles with source timestamps; not a guaranteed real-time feed."""
+    """Return public chart candles with cache/stale fallback; never guarantees real-time data."""
     key = instrument.upper()
     if key not in MARKET_SYMBOLS:
         raise HTTPException(404, "Instrumen market monitor tidak dikenal")
     if interval not in {"1m", "5m", "15m", "30m", "60m", "1d"}:
         raise HTTPException(400, "Timeframe tidak didukung")
+
     item = MARKET_SYMBOLS[key]
+    cache_key = (key, interval)
+    now = datetime.now(timezone.utc)
+    cached = _MARKET_CACHE.get(cache_key)
+    if cached:
+        age = (now - cached["_cached_at"]).total_seconds()
+        if age <= _MARKET_CACHE_TTL_SECONDS:
+            response = {k: v for k, v in cached.items() if not k.startswith("_")}
+            response["cache_status"] = "HIT"
+            response["cache_age_seconds"] = int(age)
+            return response
+
     urls = [
         f"https://query1.finance.yahoo.com/v8/finance/chart/{item['ticker']}",
         f"https://query2.finance.yahoo.com/v8/finance/chart/{item['ticker']}",
@@ -84,6 +102,10 @@ async def market_monitor(instrument: str, interval: str = "1m"):
                 "Accept": "application/json,text/plain,*/*",
             }) as client:
                 response = await client.get(url, params=params)
+            if response.status_code == 429:
+                upstream_errors.append("HTTP 429 (Yahoo rate limit)")
+                # A second Yahoo hostname is not a reliable workaround for a shared limit.
+                break
             if response.status_code >= 400:
                 upstream_errors.append(f"HTTP {response.status_code}")
                 continue
@@ -113,21 +135,35 @@ async def market_monitor(instrument: str, interval: str = "1m"):
                 continue
             meta = result.get("meta") or {}
             regular = meta.get("currentTradingPeriod", {}).get("regular", {})
-            return {
+            data = {
                 "instrument": key, "label": item["label"], "ticker": item["ticker"],
                 "source": "Yahoo Finance chart endpoint", "status": "DELAY_UNKNOWN",
                 "message": "Feed publik; latensi dan hak akses data tidak dijamin. Jangan anggap realtime.",
                 "interval": interval, "candles": candles,
                 "last_candle_at": datetime.fromtimestamp(candles[-1]["time"], timezone.utc).isoformat(),
-                "fetched_at": datetime.now(timezone.utc).isoformat(),
+                "fetched_at": now.isoformat(),
                 "currency": meta.get("currency"), "exchange_timezone": meta.get("exchangeTimezoneName"),
                 "regular_session": {"start": regular.get("start"), "end": regular.get("end")} if regular else None,
+                "cache_status": "MISS", "cache_age_seconds": 0,
             }
+            _MARKET_CACHE[cache_key] = {**data, "_cached_at": now}
+            return data
         except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
             upstream_errors.append(type(exc).__name__)
-    detail = ", ".join(upstream_errors[-2:]) or "unknown upstream error"
-    raise HTTPException(502, f"Data market sementara tidak tersedia ({item['ticker']}): {detail}")
 
+    detail = ", ".join(upstream_errors[-2:]) or "unknown upstream error"
+    if cached:
+        age = (now - cached["_cached_at"]).total_seconds()
+        if age <= _MARKET_STALE_MAX_SECONDS:
+            stale = {k: v for k, v in cached.items() if not k.startswith("_")}
+            stale.update({
+                "cache_status": "STALE",
+                "cache_age_seconds": int(age),
+                "warning": f"Upstream tidak tersedia ({detail}); memakai cache lama. Harga bisa stale.",
+            })
+            return stale
+    raise HTTPException(502, f"Data market sementara tidak tersedia ({item['ticker']}): {detail}. Cache valid belum tersedia; coba lagi nanti.")
+    
 
 # ---------- helper input ----------
 
