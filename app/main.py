@@ -131,8 +131,15 @@ async def myfxbook_outlook(symbol: str = "XAUUSD"):
             parser = _MyfxbookTextParser()
             parser.feed(response.text)
             text_blob = " ".join(parser.parts)
-            short_match = re.search(r"(\d+(?:\.\d+)?)\s*%\s*of the forex traders are currently going short(?:\s+with\s+XAU/?USD)?", text_blob, re.I)
+            short_match = re.search(r"(\d+(?:\.\d+)?)\s*%\s*of the forex traders are currently going short", text_blob, re.I)
             long_match = re.search(r"(\d+(?:\.\d+)?)\s*%\s*of the forex traders are going long", text_blob, re.I)
+            # Public page text can split the instrument phrase or change its wording.
+            if not short_match or not long_match:
+                directional = re.findall(r"(\d+(?:\.\d+)?)\s*%\s*of the forex traders are (?:currently )?going\s+(short|long)", text_blob, re.I)
+                if not short_match:
+                    short_match = next((type("Match", (), {"group": lambda self, n, v=v: v})() for v, side in directional if side.lower() == "short"), None)
+                if not long_match:
+                    long_match = next((type("Match", (), {"group": lambda self, n, v=v: v})() for v, side in directional if side.lower() == "long"), None)
             percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", text_blob)
             average_prices = re.findall(r"average price(?: of)?\s*([\d,.]+)", text_blob, re.I)
             table = re.search(
