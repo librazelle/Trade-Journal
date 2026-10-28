@@ -3,6 +3,8 @@ import asyncio
 import base64
 import json
 import math
+import re
+from html.parser import HTMLParser
 
 import httpx
 from contextlib import asynccontextmanager
@@ -53,158 +55,203 @@ app.include_router(macro_history_router)
 app.include_router(event_lab_router)
 
 
-# ---------- Market monitor: public Yahoo Finance chart endpoint ----------
-
-MARKET_SYMBOLS = {
-    "NASDAQ100": {"ticker": "^NDX", "label": "Nasdaq 100", "source": "Yahoo Finance chart endpoint"},
-    "XAUUSD": {"ticker": "GC=F", "label": "Gold futures proxy (not broker spot XAU/USD)", "source": "Yahoo Finance chart endpoint"},
-    "SP500": {"ticker": "^GSPC", "label": "S&P 500", "source": "Yahoo Finance chart endpoint"},
-}
-
-# Process-local cache reduces upstream calls and preserves the last good candles during
-# temporary Yahoo failures. It is deliberately not described as a real-time feed.
-_MARKET_CACHE: dict[tuple[str, str], dict] = {}
-_MARKET_CACHE_TTL_SECONDS = 60
-_MARKET_STALE_MAX_SECONDS = 1800
-
-
-@app.get("/api/market-monitor/{instrument}")
-async def market_monitor(instrument: str, interval: str = "1m"):
-    """Return public chart candles with cache/stale fallback; never guarantees real-time data."""
-    key = instrument.upper()
-    if key not in MARKET_SYMBOLS:
-        raise HTTPException(404, "Instrumen market monitor tidak dikenal")
-    if interval not in {"1m", "5m", "15m", "30m", "60m", "1d"}:
-        raise HTTPException(400, "Timeframe tidak didukung")
-
-    item = MARKET_SYMBOLS[key]
-    cache_key = (key, interval)
-    now = datetime.now(timezone.utc)
-    cached = _MARKET_CACHE.get(cache_key)
-    if cached:
-        age = (now - cached["_cached_at"]).total_seconds()
-        if age <= _MARKET_CACHE_TTL_SECONDS:
-            response = {k: v for k, v in cached.items() if not k.startswith("_")}
-            response["cache_status"] = "HIT"
-            response["cache_age_seconds"] = int(age)
-            return response
-
-    urls = [
-        f"https://query1.finance.yahoo.com/v8/finance/chart/{item['ticker']}",
-        f"https://query2.finance.yahoo.com/v8/finance/chart/{item['ticker']}",
-    ]
-    params = {"range": "1d" if interval != "1d" else "1y", "interval": interval, "events": "history"}
-    upstream_errors = []
-    for url in urls:
-        try:
-            async with httpx.AsyncClient(timeout=8.0, headers={
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36",
-                "Accept": "application/json,text/plain,*/*",
-            }) as client:
-                response = await client.get(url, params=params)
-            if response.status_code == 429:
-                upstream_errors.append("HTTP 429 (Yahoo rate limit)")
-                # A second Yahoo hostname is not a reliable workaround for a shared limit.
-                break
-            if response.status_code >= 400:
-                upstream_errors.append(f"HTTP {response.status_code}")
-                continue
-            payload = response.json()
-            chart = payload.get("chart") or {}
-            if chart.get("error"):
-                upstream_errors.append("upstream chart error")
-                continue
-            result = (chart.get("result") or [None])[0]
-            if not result:
-                upstream_errors.append("empty upstream result")
-                continue
-            timestamps = result.get("timestamp") or []
-            quote = ((result.get("indicators") or {}).get("quote") or [{}])[0]
-            candles = []
-            for i, stamp in enumerate(timestamps):
-                try:
-                    values = [quote[field][i] for field in ("open", "high", "low", "close")]
-                    if any(value is None or not math.isfinite(float(value)) for value in values):
-                        continue
-                    candles.append({"time": int(stamp), "open": float(values[0]), "high": float(values[1]), "low": float(values[2]), "close": float(values[3])})
-                except (IndexError, KeyError, TypeError, ValueError):
-                    continue
-            candles = candles[-500:]
-            if not candles:
-                upstream_errors.append("no valid candles")
-                continue
-            meta = result.get("meta") or {}
-            regular = meta.get("currentTradingPeriod", {}).get("regular", {})
-            data = {
-                "instrument": key, "label": item["label"], "ticker": item["ticker"],
-                "source": "Yahoo Finance chart endpoint", "status": "DELAY_UNKNOWN",
-                "message": "Feed publik; latensi dan hak akses data tidak dijamin. Jangan anggap realtime.",
-                "interval": interval, "candles": candles,
-                "last_candle_at": datetime.fromtimestamp(candles[-1]["time"], timezone.utc).isoformat(),
-                "fetched_at": now.isoformat(),
-                "currency": meta.get("currency"), "exchange_timezone": meta.get("exchangeTimezoneName"),
-                "regular_session": {"start": regular.get("start"), "end": regular.get("end")} if regular else None,
-                "cache_status": "MISS", "cache_age_seconds": 0,
-            }
-            _MARKET_CACHE[cache_key] = {**data, "_cached_at": now}
-            return data
-        except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
-            upstream_errors.append(type(exc).__name__)
-
-    detail = ", ".join(upstream_errors[-2:]) or "unknown upstream error"
-    if cached:
-        age = (now - cached["_cached_at"]).total_seconds()
-        if age <= _MARKET_STALE_MAX_SECONDS:
-            stale = {k: v for k, v in cached.items() if not k.startswith("_")}
-            stale.update({
-                "cache_status": "STALE",
-                "cache_age_seconds": int(age),
-                "warning": f"Upstream tidak tersedia ({detail}); memakai cache lama. Harga bisa stale.",
-            })
-            return stale
-    raise HTTPException(502, f"Data market sementara tidak tersedia ({item['ticker']}): {detail}. Cache valid belum tersedia; coba lagi nanti.")
-    
-
 @app.get("/api/news-liquidity/coinglass")
 async def coinglass_news_liquidity(symbol: str = "BTC", interval: str = "5m", start_time: int | None = None, end_time: int | None = None):
-    """Fetch crypto liquidation and aggregated open-interest history around an event."""
-    if not settings.coinglass_api_key:
-        return {"configured": False, "source": "CoinGlass API v4", "message": "Set COINGLASS_API_KEY in deployment environment variables.", "liquidations": [], "open_interest": []}
+    """Use Binance public futures endpoints; no API key required. Historical liquidations are not publicly available here."""
     symbol = symbol.strip().upper()
-    if symbol not in {"BTC", "ETH", "SOL", "BNB", "XRP"}:
+    symbols = {"BTC": "BTCUSDT", "ETH": "ETHUSDT", "SOL": "SOLUSDT", "BNB": "BNBUSDT", "XRP": "XRPUSDT"}
+    if symbol not in symbols:
         raise HTTPException(400, "Unsupported crypto symbol.")
-    if interval not in {"1m", "3m", "5m", "15m", "30m", "1h", "4h", "6h", "8h", "12h", "1d", "1w"}:
-        raise HTTPException(400, "Unsupported CoinGlass interval.")
+    if interval not in {"5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d"}:
+        raise HTTPException(400, "Unsupported public futures interval.")
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
     end_ms = end_time or now_ms
     start_ms = start_time or end_ms - 24 * 60 * 60 * 1000
     if start_ms >= end_ms:
         raise HTTPException(400, "start_time must be earlier than end_time.")
-    if end_ms - start_ms > 30 * 24 * 60 * 60 * 1000:
-        raise HTTPException(400, "CoinGlass window is limited to 30 days.")
-    headers = {"accept": "application/json", "CG-" + "API-KEY": settings.coinglass_api_key, "User-Agent": "trade-lens/0.1"}
-    params = {"symbol": symbol, "interval": interval, "limit": 1000, "start_time": start_ms, "end_time": end_ms}
-    async def fetch_data(client, path, query):
-        response = await client.get("https://open-api-v4.coinglass.com" + path, params=query)
-        response.raise_for_status()
-        payload = response.json()
-        if str(payload.get("code", "0")) != "0":
-            raise ValueError("CoinGlass API returned an error")
-        return payload.get("data") or []
+    if end_ms - start_ms > 7 * 24 * 60 * 60 * 1000:
+        raise HTTPException(400, "Public open-interest history is limited to a 7-day window.")
+    pair = symbols[symbol]
+    params = {"symbol": pair, "period": interval, "limit": 500, "startTime": start_ms, "endTime": end_ms}
     try:
-        async with httpx.AsyncClient(timeout=12.0, headers=headers) as client:
-            liquidations, open_interest = await asyncio.gather(
-                fetch_data(client, "/api/futures/liquidation/aggregated-history", {**params, "exchange_list": "Binance,OKX,Bybit"}),
-                fetch_data(client, "/api/futures/open-interest/aggregated-history", params),
-            )
+        async with httpx.AsyncClient(timeout=12.0, headers={"accept": "application/json", "User-Agent": "trade-lens/0.1"}) as client:
+            oi_response = await client.get("https://fapi.binance.com/futures/data/openInterestHist", params=params)
+            oi_response.raise_for_status()
+            oi_payload = oi_response.json()
+            ticker_response = await client.get("https://fapi.binance.com/fapi/v1/ticker/24hr", params={"symbol": pair})
+            ticker_response.raise_for_status()
+            ticker = ticker_response.json()
+            funding_response = await client.get("https://fapi.binance.com/fapi/v1/fundingRate", params={"symbol": pair, "limit": 1})
+            funding_response.raise_for_status()
+            funding_payload = funding_response.json()
     except (httpx.HTTPError, ValueError, TypeError) as exc:
-        raise HTTPException(502, "CoinGlass data unavailable. Check API key, plan/interval limits, and supported symbol.") from exc
-    return {"configured": True, "source": "CoinGlass API v4", "symbol": symbol, "interval": interval, "start_time": start_ms, "end_time": end_ms, "exchange_list": ["Binance", "OKX", "Bybit"], "liquidations": liquidations, "open_interest": open_interest, "message": "Crypto derivatives data only; not XAUUSD or Nasdaq futures liquidity."}
+        raise HTTPException(502, "Binance public futures data unavailable. Check network/API availability and try again.") from exc
+    oi_rows = []
+    for row in oi_payload if isinstance(oi_payload, list) else []:
+        try:
+            value = float(row.get("sumOpenInterestValue", 0))
+            timestamp = int(row.get("timestamp", 0))
+            oi_rows.append({"time": timestamp, "open": value, "close": value, "open_interest_value": value, "open_interest_contracts": float(row.get("sumOpenInterest", 0))})
+        except (ValueError, TypeError):
+            continue
+    funding = None
+    if isinstance(funding_payload, list) and funding_payload:
+        try:
+            funding = float(funding_payload[-1].get("fundingRate"))
+        except (ValueError, TypeError):
+            funding = None
+    try:
+        price_change_pct = float(ticker.get("priceChangePercent"))
+        last_price = float(ticker.get("lastPrice"))
+        quote_volume = float(ticker.get("quoteVolume"))
+    except (ValueError, TypeError):
+        price_change_pct = last_price = quote_volume = None
+    return {
+        "configured": True, "source": "Binance public USDⓈ-M Futures API", "symbol": symbol,
+        "pair": pair, "interval": interval, "start_time": start_ms, "end_time": end_ms,
+        "liquidations": [], "liquidations_available": False, "open_interest": oi_rows,
+        "funding_rate": funding, "price_change_percent_24h": price_change_pct,
+        "last_price": last_price, "quote_volume_24h": quote_volume,
+        "exchange_list": ["Binance"],
+        "message": "Data publik tanpa API key. Binance public API menyediakan open-interest history dan funding/market snapshot, tetapi bukan riwayat agregat liquidation. Data ini hanya crypto, bukan proxy likuiditas XAUUSD atau Nasdaq."
+    }
+
+class _MyfxbookTextParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.parts = []
+    def handle_data(self, data):
+        cleaned = " ".join(data.split())
+        if cleaned:
+            self.parts.append(cleaned)
+
+_MYFXBOOK_OUTLOOK_CACHE = {}
+_MYFXBOOK_OUTLOOK_TTL = 60
+
+@app.get("/api/myfxbook/outlook/{symbol}")
+async def myfxbook_outlook(symbol: str = "XAUUSD"):
+    """Read the public Myfxbook sentiment page; values may be delayed by the provider."""
+    normalized = symbol.strip().upper()
+    if normalized != "XAUUSD":
+        raise HTTPException(400, "Saat ini Myfxbook outlook hanya diaktifkan untuk XAUUSD.")
+    now = datetime.now(timezone.utc)
+    cached = _MYFXBOOK_OUTLOOK_CACHE.get(normalized)
+    if cached and (now - cached["_cached_at"]).total_seconds() < _MYFXBOOK_OUTLOOK_TTL:
+        return {**{k: v for k, v in cached.items() if not k.startswith("_")}, "cache_status": "HIT"}
+    urls = [
+        "https://www.myfxbook.com/community/outlook/XAUUSD",
+        "https://www.myfxbook.id/community/outlook/XAUUSD",
+    ]
+    errors = []
+    for url in urls:
+        try:
+            async with httpx.AsyncClient(timeout=12, follow_redirects=True, headers={
+                "User-Agent": "Mozilla/5.0 (compatible; Trade-Lens/1.0; public sentiment reader)",
+                "Accept": "text/html,application/xhtml+xml",
+            }) as client:
+                response = await client.get(url)
+            if response.status_code >= 400:
+                errors.append(f"HTTP {response.status_code}")
+                continue
+            parser = _MyfxbookTextParser()
+            parser.feed(response.text)
+            text_blob = " ".join(parser.parts)
+            # Myfxbook changes wording and HTML boundaries; parse direction labels
+            # independently and fall back to the first two percentages only when needed.
+            directional = re.findall(
+                r"(\d+(?:\.\d+)?)\s*%\s*of the forex traders are\s+(?:currently\s+)?going\s+(short|long)",
+                text_blob, re.I,
+            )
+            directional_by_side = {side.lower(): value for value, side in directional}
+            percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", text_blob)
+            average_prices = re.findall(r"average price(?: of)?\s*([\d,]*\d(?:\.\d+)?)", text_blob, re.I)
+            table = re.search(
+                r"XAUUSD\s+short\s+(\d+(?:\.\d+)?)\s*%\s+([\d,.]+)\s*lots\s+([\d,]+)\s+Long\s+(\d+(?:\.\d+)?)\s*%\s+([\d,.]+)\s*lots\s+([\d,]+)",
+                text_blob, re.I
+            )
+            if not directional_by_side and not table and len(percentages) < 2:
+                errors.append("Myfxbook page structure changed or sentiment data was not present")
+                continue
+            def number(value):
+                return float(value.replace(",", ""))
+            short_pct = number(directional_by_side["short"]) if "short" in directional_by_side else (number(table.group(1)) if table else number(percentages[0]))
+            long_pct = number(directional_by_side["long"]) if "long" in directional_by_side else (number(table.group(4)) if table else number(percentages[1]))
+            short_avg = number(average_prices[0]) if len(average_prices) > 0 else None
+            long_avg = number(average_prices[1]) if len(average_prices) > 1 else None
+            short_lots = number(table.group(2)) if table else None
+            short_positions = int(table.group(3).replace(",", "")) if table else None
+            long_lots = number(table.group(5)) if table else None
+            long_positions = int(table.group(6).replace(",", "")) if table else None
+            data = {
+                "symbol": "XAUUSD", "short_percentage": short_pct, "long_percentage": long_pct,
+                "short_average_price": short_avg, "long_average_price": long_avg,
+                "short_lots": short_lots, "long_lots": long_lots,
+                "short_positions": short_positions, "long_positions": long_positions,
+                "source": "Myfxbook Community Outlook", "source_url": url,
+                "source_delay_minutes": 60, "fetched_at": now.isoformat(),
+                "notice": "Data publik Myfxbook dapat tertunda hingga 60 menit. Ini sentimen posisi komunitas, bukan order book global atau sinyal arah harga.",
+                "cache_status": "MISS",
+            }
+            _MYFXBOOK_OUTLOOK_CACHE[normalized] = {**data, "_cached_at": now}
+            return data
+        except (httpx.HTTPError, ValueError, TypeError) as exc:
+            errors.append(type(exc).__name__)
+    raise HTTPException(502, "Myfxbook outlook tidak bisa dibaca saat ini: " + "; ".join(errors[-2:]))
+
+@app.post("/api/myfxbook/outlook/summarize")
+async def summarize_myfxbook_outlook(request: Request):
+    """Explain the supplied Myfxbook sentiment metrics in plain Indonesian using Gemini."""
+    if not settings.gemini_api_key:
+        raise HTTPException(503, "Gemini belum dikonfigurasi. Admin perlu mengisi GEMINI_API_KEY di environment server.")
+    try:
+        data = await request.json()
+    except ValueError:
+        raise HTTPException(400, "Payload JSON tidak valid.") from None
+    if not isinstance(data, dict) or data.get("symbol") != "XAUUSD":
+        raise HTTPException(400, "Data sentiment XAUUSD tidak valid.")
+    allowed = ("short_percentage", "long_percentage", "short_average_price", "long_average_price", "short_lots", "long_lots", "short_positions", "long_positions")
+    metrics = {key: data.get(key) for key in allowed if data.get(key) is not None}
+    if not {"short_percentage", "long_percentage"}.issubset(metrics):
+        raise HTTPException(400, "Persentase long/short belum tersedia.")
+    prompt = (
+        "Jelaskan data sentimen Myfxbook XAUUSD ini dalam bahasa Indonesia yang sangat gampang dipahami trader retail. "
+        "Pakai format: DATA; ARTINYA; SKENARIO ICT; KONFIRMASI YANG DITUNGGU; RISIKO SALAH BACA. "
+        "Bedakan angka faktual dari interpretasi. Jelaskan bahwa sentimen posisi bukan order flow global dan data publik dapat tertunda sampai 60 menit. "
+        "Jangan memberi kepastian BUY/SELL, probabilitas palsu, atau menyimpulkan contrarian secara otomatis. "
+        "Jika mayoritas short, jelaskan short squeeze hanya sebagai kemungkinan jika harga mengonfirmasi dengan struktur/BOS dan liquidity sweep. "
+        "Sebutkan bahwa harga rata-rata entry komunitas bukan level support/resistance yang otomatis valid. Maksimal 180 kata. "
+        "Data JSON: " + json.dumps(metrics, ensure_ascii=False)
+    )
+    payload = {
+        "systemInstruction": {"parts": [{"text": "Kamu adalah analis sentiment XAUUSD yang konservatif. Ajarkan dengan bahasa sederhana, tanpa sinyal trading pasti dan tanpa mengarang data."}]},
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 500},
+    }
+    endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + settings.gemini_model + ":generateContent"
+    try:
+        async with httpx.AsyncClient(timeout=35, follow_redirects=True) as client:
+            response = await client.post(endpoint, headers={"x-goog-api-key": settings.gemini_api_key, "Content-Type": "application/json"}, json=payload)
+        if response.status_code == 429:
+            raise HTTPException(429, "Kuota Gemini habis atau sedang dibatasi. Coba lagi nanti.")
+        if response.status_code in {400, 401, 403, 404}:
+            raise HTTPException(502, "Gemini menolak permintaan. Periksa GEMINI_API_KEY dan model di server.")
+        response.raise_for_status()
+        result = response.json()
+    except HTTPException:
+        raise
+    except httpx.HTTPError:
+        raise HTTPException(502, "Layanan Gemini sementara tidak tersedia.") from None
+    candidates = result.get("candidates", [])
+    parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
+    analysis = "\n".join(part.get("text", "") for part in parts if isinstance(part, dict) and isinstance(part.get("text"), str)).strip()
+    if not analysis:
+        raise HTTPException(502, "Gemini tidak mengembalikan ringkasan.")
+    return {"analysis": analysis, "model": settings.gemini_model, "source": "Myfxbook Community Outlook", "symbol": "XAUUSD"}
 
 @app.get("/news-liquidity", response_class=HTMLResponse)
 def news_liquidity_page(request: Request):
     """News Liquidity Lab: compare recent market candles around an economic release."""
-    return templates.TemplateResponse(request, "news_liquidity.html", {})
+    return templates.TemplateResponse(request, "news_liquidity.html", {"coinglass_configured": bool(settings.coinglass_api_key)})
 
 
 # ---------- helper input ----------
