@@ -167,6 +167,18 @@ def test_market_monitor_returns_502_when_upstream_has_no_candles(client, monkeyp
     assert "Data market sementara tidak tersedia" in response.json()["detail"]
 
 
+def test_coinglass_endpoint_explains_missing_api_key(client, monkeypatch):
+    monkeypatch.setattr(settings, "coinglass_api_key", "")
+    response = client.get("/api/news-liquidity/coinglass?symbol=BTC&interval=5m")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["configured"] is False
+    assert "COINGLASS_API_KEY" in data["message"]
+    assert data["liquidations"] == []
+    assert data["open_interest"] == []
+
+
 def test_news_liquidity_page_renders(client):
     response = client.get("/news-liquidity")
     assert response.status_code == 200
