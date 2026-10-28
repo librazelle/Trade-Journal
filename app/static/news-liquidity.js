@@ -5,6 +5,43 @@
   const dtfmt = t => new Date(t*1000).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Jakarta"});
   const range = rows => rows.length ? Math.max(...rows.map(c=>c.high))-Math.min(...rows.map(c=>c.low)) : NaN;
   const setStatus = (s,k="") => {status.textContent=s;status.className="nl-status "+k;};
+  let importedCandles = null;
+  function parseCsvCandles(text) {
+    const lines=text.replace(/^\\uFEFF/,"").split(/\\r?\\n/).filter(line=>line.trim());
+    if(lines.length<2) throw new Error("CSV kosong atau hanya berisi header.");
+    const splitLine=line=>{const out=[];let cell="",quoted=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'&&line[i+1]==='"'&&quoted){cell+='"';i++;}else if(ch==='"'){quoted=!quoted;}else if(ch===","&&!quoted){out.push(cell.trim());cell="";}else{cell+=ch;}}out.push(cell.trim());return out;};
+    const headers=splitLine(lines[0]).map(h=>h.replace(/^"|"$/g,"").trim().toLowerCase());
+    const find=names=>headers.findIndex(h=>names.includes(h.replace(/[ _-]/g,"")));
+    const ti=find(["time","date","datetime","timestamp"]);
+    const oi=find(["open"]), hi=find(["high"]), li=find(["low"]), ci=find(["close"]);
+    if([ti,oi,hi,li,ci].some(i=>i<0)) throw new Error("CSV perlu kolom time/date, open, high, low, close.");
+    const rows=[];
+    for(const line of lines.slice(1)){
+      const cells=splitLine(line);
+      const raw=(cells[ti]||"").replace(/^"|"$/g,"").trim();
+      let stamp;
+      if(/^\\d+(\\.\\d+)?$/.test(raw)){const n=Number(raw);stamp=Math.floor(n>1e12?n/1000:n>1e9?n:n*86400);}
+      else {stamp=Math.floor(Date.parse(raw)/1000);}
+      const values=[oi,hi,li,ci].map(i=>Number((cells[i]||"").replace(/,/g,"")));
+      if(!Number.isFinite(stamp)||values.some(v=>!Number.isFinite(v))) continue;
+      rows.push({time:stamp,open:values[0],high:values[1],low:values[2],close:values[3]});
+    }
+    const unique=new Map(rows.map(row=>[row.time,row]));
+    const candles=[...unique.values()].sort((a,b)=>a.time-b.time);
+    if(!candles.length) throw new Error("Tidak ada baris OHLC valid di CSV.");
+    return candles;
+  }
+  $("nl-csv-file").addEventListener("change", async ev=>{
+    const file=ev.target.files?.[0], label=$("nl-csv-status");
+    if(!file){importedCandles=null;label.textContent="Belum ada file diimpor.";return;}
+    try{
+      importedCandles=parseCsvCandles(await file.text());
+      label.className="nl-status ok";
+      label.textContent=file.name+": "+importedCandles.length+" candle siap dianalisis. Timestamp harus sesuai waktu lokal/event yang dipilih.";
+    }catch(err){
+      importedCandles=null;label.className="nl-status error";label.textContent=err.message||"CSV gagal dibaca.";
+    }
+  });
   const now = new Date(Date.now()-new Date().getTimezoneOffset()*60000);
   $("nl-event-time").value = now.toISOString().slice(0,16);
   function candleRows(rows, eventSec) {
@@ -18,9 +55,18 @@
       const eventMs=new Date($("nl-event-time").value).getTime();
       if(!Number.isFinite(eventMs)) throw new Error("Waktu rilis tidak valid.");
       const eventSec=Math.floor(eventMs/1000), windowSec=Number($("nl-window").value)*60;
-      const res=await fetch('/api/market-monitor/'+encodeURIComponent(instrument)+'?interval='+encodeURIComponent(interval),{cache:"no-store"});
-      const data=await res.json();
-      if(!res.ok) throw new Error(data.detail||"Data market tidak tersedia.");
+      let data;
+      if(importedCandles){
+        data={candles:importedCandles,source:"CSV impor lokal",ticker:instrument};
+      }else{
+        const res=await fetch('/api/market-monitor/'+encodeURIComponent(instrument)+'?interval='+encodeURIComponent(interval),{cache:"no-store"});
+        data=await res.json();
+        if(!res.ok){
+          const detail=data.detail||"Data market tidak tersedia.";
+          if(res.status===502&&detail.includes("429")) throw new Error("Yahoo Finance sedang membatasi request (HTTP 429). Impor CSV OHLC dari TradingView/broker di atas untuk tetap menganalisis event.");
+          throw new Error(detail);
+        }
+      }
       const candles=(data.candles||[]).filter(c=>c.time>=eventSec-windowSec && c.time<=eventSec+windowSec);
       const pre=candles.filter(c=>c.time<eventSec), post=candles.filter(c=>c.time>=eventSec);
       const allStart=data.candles?.[0]?.time, allEnd=data.candles?.[data.candles.length-1]?.time;
