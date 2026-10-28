@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}News Liquidity Lab · trade-lens{% endblock %}
-{% block page_scripts %}<script src="/static/news-liquidity.js?v=8" defer></script>{% endblock %}
+{% block page_scripts %}<script src="/static/news-liquidity.js?v=9" defer></script>{% endblock %}
 {% block content %}
 <section class="nl-page">
   <p class="nl-kicker">EVENT STUDY / LIQUIDITY MAP</p>
@@ -26,18 +26,18 @@
       <label>Crypto symbol
         <select id="nl-cg-symbol"><option value="BTC">BTC</option><option value="ETH">ETH</option><option value="SOL">SOL</option><option value="BNB">BNB</option><option value="XRP">XRP</option></select>
       </label>
-      <button type="button" id="nl-cg-run"{% if not coinglass_configured %} disabled{% endif %}>Muat data derivatif</button>
+      <button type="button" id="nl-cg-run">Muat data derivatif</button>
     </div>
-    <div id="nl-cg-status" class="nl-status{% if not coinglass_configured %} error{% endif %}">{% if coinglass_configured %}CoinGlass siap dimuat. Pilih simbol lalu tekan tombol.{% else %}CoinGlass belum dikonfigurasi di server. Admin perlu menambahkan COINGLASS_API_KEY pada environment deployment, lalu redeploy. Tombol dinonaktifkan sampai key tersedia.{% endif %}</div>
+    <div id="nl-cg-status" class="nl-status">Menggunakan endpoint publik Binance Futures. Tidak memerlukan API key.</div>
     <div class="nl-metrics">
-      <article><span>Total liquidation</span><strong id="nl-cg-total">—</strong><small id="nl-cg-split">Long / short split</small></article>
-      <article><span>Long liquidation</span><strong id="nl-cg-long">—</strong><small id="nl-cg-long-pct">—</small></article>
-      <article><span>Short liquidation</span><strong id="nl-cg-short">—</strong><small id="nl-cg-short-pct">—</small></article>
-      <article><span>Open interest change</span><strong id="nl-cg-oi">—</strong><small id="nl-cg-oi-note">First open vs last close in selected window</small></article>
+      <article><span>Liquidation historis</span><strong id="nl-cg-total">N/A</strong><small id="nl-cg-split">Tidak tersedia di endpoint publik ini</small></article>
+      <article><span>Funding rate</span><strong id="nl-cg-long">—</strong><small id="nl-cg-long-pct">Rate pendanaan terbaru</small></article>
+      <article><span>Perubahan harga 24 jam</span><strong id="nl-cg-short">—</strong><small id="nl-cg-short-pct">Perubahan persentase</small></article>
+      <article><span>Open interest change</span><strong id="nl-cg-oi">—</strong><small id="nl-cg-oi-note">Perubahan nilai open interest pada rentang terpilih</small></article>
     </div>
-    <p id="nl-cg-source" class="nl-empty">Exchange coverage: Binance, OKX, Bybit. Crypto derivatives are not a proxy for gold or Nasdaq liquidity.</p>
+    <p id="nl-cg-source" class="nl-empty">Sumber: Binance USDⓈ-M Futures publik. Riwayat liquidation tidak tersedia melalui endpoint ini. Data crypto bukan proxy likuiditas XAUUSD atau Nasdaq.</p>
   </section>
-  <p class="nl-disclaimer"><strong>Batasan data:</strong> panel sentiment berasal dari Myfxbook dan data derivatif crypto dari CoinGlass jika API tersedia. Data sentimen publik dapat tertunda; CoinGlass hanya mencakup pasar crypto dan bukan proxy likuiditas XAUUSD/Nasdaq. Tidak ada analisis candle atau sinyal entry otomatis pada halaman ini.</p>
+  <p class="nl-disclaimer"><strong>Batasan data:</strong> panel sentiment berasal dari Myfxbook dan data derivatif crypto memakai endpoint publik Binance tanpa API key. Riwayat liquidation historis tidak tersedia melalui endpoint publik ini. Data crypto bukan proxy likuiditas XAUUSD/Nasdaq. Tidak ada analisis candle atau sinyal entry otomatis pada halaman ini.</p>
 </section>
 <style>
 .nl-mf-summary{white-space:pre-wrap;line-height:1.65;font-size:14px;padding:12px;background:var(--bg);border:1px solid var(--rule);margin-top:10px}.nl-mf-summary-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.nl-mf-summary-head h3{font-size:15px}.nl-sentiment-panel button{padding:10px 14px}.nl-mf-summary-head button:disabled{opacity:.45}.nl-page{max-width:1120px;margin:0 auto;padding:10px 0 36px}.nl-kicker{color:#8ba8d8;font:600 11px/1.4 var(--sans);letter-spacing:.16em}.nl-page h1{margin:4px 0 8px}.nl-intro{max-width:780px;color:var(--muted);margin:0 0 20px}.nl-status{padding:12px 0;color:var(--muted);font-size:13px}.nl-status.error{color:#e27d6a}.nl-status.ok{color:#6fbf94}.nl-panel{background:var(--surface);border:1px solid var(--rule);padding:14px;min-width:0}.nl-panel{margin:12px 0}.nl-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.nl-panel-head h2{margin:0}.nl-panel-head p{margin:4px 0 12px;color:var(--muted);font-size:12px}.nl-panel-head>span{color:var(--muted);font-size:11px;text-align:right}.nl-empty{color:var(--muted);font-size:13px}.nl-disclaimer{font-size:12px;color:var(--muted);margin-top:18px}.nl-disclaimer code{color:var(--ink)}.nl-derivative-controls{display:flex;align-items:end;gap:12px;margin:12px 0}.nl-derivative-controls label{display:grid;gap:6px;color:var(--muted);font-size:12px}.nl-derivative-controls select{padding:10px;background:var(--bg);color:var(--ink);border:1px solid var(--rule)}@media(max-width:760px){.nl-derivative-controls{align-items:stretch;flex-direction:column}.nl-panel-head{display:block}.nl-panel-head>span{text-align:left}}
