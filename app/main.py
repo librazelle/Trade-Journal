@@ -134,14 +134,14 @@ async def myfxbook_outlook(symbol: str = "XAUUSD"):
             # Myfxbook changes wording and HTML boundaries; parse direction labels
             # independently and fall back to the first two percentages only when needed.
             directional = re.findall(
-                r"(\\d+(?:\\.\\d+)?)\\s*%\\s*of the forex traders are\\s+(?:currently\\s+)?going\\s+(short|long)",
+                r"(\d+(?:\.\d+)?)\s*%\s*of the forex traders are\s+(?:currently\s+)?going\s+(short|long)",
                 text_blob, re.I,
             )
             directional_by_side = {side.lower(): value for value, side in directional}
-            percentages = re.findall(r"(\\d+(?:\\.\\d+)?)\\s*%", text_blob)
-            average_prices = re.findall(r"average price(?: of)?\\s*([\\d,.]+)", text_blob, re.I)
+            percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", text_blob)
+            average_prices = re.findall(r"average price(?: of)?\s*([\d,.]+)", text_blob, re.I)
             table = re.search(
-                r"XAUUSD\\s+short\\s+(\\d+(?:\\.\\d+)?)\\s*%\\s+([\\d,.]+)\\s*lots\\s+([\\d,]+)\\s+Long\\s+(\\d+(?:\\.\\d+)?)\\s*%\\s+([\\d,.]+)\\s*lots\\s+([\\d,]+)",
+                r"XAUUSD\s+short\s+(\d+(?:\.\d+)?)\s*%\s+([\d,.]+)\s*lots\s+([\d,]+)\s+Long\s+(\d+(?:\.\d+)?)\s*%\s+([\d,.]+)\s*lots\s+([\d,]+)",
                 text_blob, re.I
             )
             if not directional_by_side and not table and len(percentages) < 2:
