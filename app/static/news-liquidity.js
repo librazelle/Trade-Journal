@@ -56,30 +56,22 @@
       const response=await fetch("/api/news-liquidity/coinglass?"+params.toString(),{cache:"no-store"});
       const data=await response.json();
       if(!response.ok) throw new Error(data.detail||"CoinGlass tidak tersedia.");
-      if(!data.configured) {
-        cgStatus.textContent=data.message||"CoinGlass belum dikonfigurasi.";
-        return;
-      }
-      const liqs=data.liquidations||[], oi=data.open_interest||[];
-      const sum=(rows,key)=>rows.reduce((total,row)=>total+(Number(row[key])||0),0);
-      const long=sum(liqs,"aggregated_long_liquidation_usd");
-      const short=sum(liqs,"aggregated_short_liquidation_usd");
-      const total=long+short;
-      $("nl-cg-total").textContent=cgFmt(total);
-      $("nl-cg-long").textContent=cgFmt(long);
-      $("nl-cg-short").textContent=cgFmt(short);
-      $("nl-cg-long-pct").textContent=total?((long/total)*100).toFixed(1)+"% of reported liquidation":"No liquidation rows";
-      $("nl-cg-short-pct").textContent=total?((short/total)*100).toFixed(1)+"% of reported liquidation":"No liquidation rows";
-      $("nl-cg-split").textContent=liqs.length+" liquidation buckets";
+      const oi=data.open_interest||[];
+      $("nl-cg-total").textContent="N/A";
+      $("nl-cg-split").textContent="Riwayat liquidation tidak disediakan endpoint publik Binance";
+      $("nl-cg-long").textContent=Number.isFinite(Number(data.funding_rate))?(Number(data.funding_rate)*100).toFixed(4)+"%":"—";
+      $("nl-cg-long-pct").textContent="Funding rate terbaru";
+      $("nl-cg-short").textContent=Number.isFinite(Number(data.price_change_percent_24h))?((Number(data.price_change_percent_24h)>0?"+":"")+Number(data.price_change_percent_24h).toFixed(2)+"%"):"—";
+      $("nl-cg-short-pct").textContent="Perubahan harga 24 jam";
       const ordered=oi.slice().sort((a,b)=>Number(a.time)-Number(b.time));
       const first=ordered[0], last=ordered[ordered.length-1];
-      const oiStart=first?Number(first.open):NaN, oiEnd=last?Number(last.close):NaN;
+      const oiStart=first?Number(first.open_interest_value):NaN, oiEnd=last?Number(last.open_interest_value):NaN;
       const oiChange=Number.isFinite(oiStart)&&oiStart!==0&&Number.isFinite(oiEnd)?((oiEnd-oiStart)/oiStart)*100:NaN;
       $("nl-cg-oi").textContent=cgPct(oiChange);
-      $("nl-cg-oi-note").textContent=first&&last?"OI close vs first open · "+ordered.length+" buckets":"No OI rows in selected window";
-      $("nl-cg-source").textContent="Source: "+data.source+" · "+data.symbol+" · "+(data.exchange_list||[]).join(", ")+" · interval "+data.interval+". Values depend on CoinGlass plan and exchange coverage.";
+      $("nl-cg-oi-note").textContent=first&&last?"Perubahan nilai OI · "+ordered.length+" titik":"Data OI tidak tersedia pada rentang ini";
+      $("nl-cg-source").textContent="Sumber: "+data.source+" · "+data.pair+" · interval "+data.interval+". Harga terakhir: "+(data.last_price==null?"—":cgFmt(Number(data.last_price)))+"; volume quote 24 jam: "+(data.quote_volume_24h==null?"—":cgFmt(Number(data.quote_volume_24h)))+".";
       cgStatus.className="nl-status ok";
-      cgStatus.textContent="Derivatives data loaded. Angka liquidation adalah agregat exchange yang diminta, bukan total seluruh pasar crypto.";
+      cgStatus.textContent="Data publik Binance berhasil dimuat tanpa API key. Riwayat liquidation tidak tersedia pada endpoint publik ini; metrik tersebut sengaja tidak direka.";
     } catch(err) {
       cgStatus.className="nl-status error";
       cgStatus.textContent=err.message||"Gagal memuat data CoinGlass.";
