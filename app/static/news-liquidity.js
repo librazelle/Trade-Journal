@@ -100,7 +100,7 @@
       const windowMs=Number($("nl-window").value)*60*1000;
       const params=new URLSearchParams({
         symbol:$("nl-cg-symbol").value,
-        interval:$("nl-interval").value,
+        interval:$("nl-interval").value==="60m"?"1h":$("nl-interval").value,
         start_time:String(eventMs-windowMs),
         end_time:String(eventMs+windowMs)
       });
