@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}News Liquidity Lab · trade-lens{% endblock %}
-{% block page_scripts %}<script src="/static/news-liquidity.js?v=7" defer></script>{% endblock %}
+{% block page_scripts %}<script src="/static/news-liquidity.js?v=8" defer></script>{% endblock %}
 {% block content %}
 <section class="nl-page">
   <p class="nl-kicker">EVENT STUDY / LIQUIDITY MAP</p>
@@ -21,14 +21,14 @@
     <p id="nl-mf-source" class="nl-empty">Data publik bisa tertunda hingga 60 menit. Sentimen Myfxbook bukan keseluruhan pasar forex atau order book.</p>
   </section>
   <section class="nl-panel" id="nl-derivatives">
-    <div class="nl-panel-head"><div><h2>Crypto derivatives · CoinGlass</h2><p>Historical liquidation + open interest around the selected event. API key stays server-side.</p></div></div>
+    <div class="nl-panel-head"><div><h2>Crypto derivatives · CoinGlass</h2><p>Riwayat liquidation dan open interest crypto. Memerlukan API key CoinGlass di server.</p></div></div>
     <div class="nl-derivative-controls">
       <label>Crypto symbol
         <select id="nl-cg-symbol"><option value="BTC">BTC</option><option value="ETH">ETH</option><option value="SOL">SOL</option><option value="BNB">BNB</option><option value="XRP">XRP</option></select>
       </label>
-      <button type="button" id="nl-cg-run">Load derivatives data</button>
+      <button type="button" id="nl-cg-run"{% if not coinglass_configured %} disabled{% endif %}>Muat data derivatif</button>
     </div>
-    <div id="nl-cg-status" class="nl-status">CoinGlass belum dimuat. Memerlukan COINGLASS_API_KEY pada environment deployment.</div>
+    <div id="nl-cg-status" class="nl-status{% if not coinglass_configured %} error{% endif %}">{% if coinglass_configured %}CoinGlass siap dimuat. Pilih simbol lalu tekan tombol.{% else %}CoinGlass belum dikonfigurasi di server. Admin perlu menambahkan COINGLASS_API_KEY pada environment deployment, lalu redeploy. Tombol dinonaktifkan sampai key tersedia.{% endif %}</div>
     <div class="nl-metrics">
       <article><span>Total liquidation</span><strong id="nl-cg-total">—</strong><small id="nl-cg-split">Long / short split</small></article>
       <article><span>Long liquidation</span><strong id="nl-cg-long">—</strong><small id="nl-cg-long-pct">—</small></article>
