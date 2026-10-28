@@ -11,6 +11,7 @@
       const data=await response.json();
       if(!response.ok)throw new Error(data.detail||"Data Myfxbook tidak tersedia.");
       myfxbookData=data;
+      scheduleMyfxbookRefresh();
       $("nl-mf-short").textContent=mfNum(data.short_percentage)+"%";
       $("nl-mf-long").textContent=mfNum(data.long_percentage)+"%";
       $("nl-mf-short-detail").textContent=data.short_positions==null?"Jumlah posisi tidak tersedia":mfNum(data.short_positions)+" posisi";
@@ -21,7 +22,14 @@
       $("nl-mf-summarize").disabled=false;
       label.className="nl-status ok";label.textContent="Data berhasil dimuat. Ringkasan AI belum dibuat.";
       $("nl-mf-summary").textContent="Klik “Ringkas dengan Gemini” untuk penjelasan sederhana.";
-    }catch(err){label.className="nl-status error";label.textContent=err.message||"Gagal mengambil sentiment Myfxbook.";}
+    }catch(err){
+      myfxbookData=null;
+      $("nl-mf-summarize").disabled=true;
+      $("nl-mf-short").textContent="—"; $("nl-mf-long").textContent="—";
+      $("nl-mf-lots").textContent="—"; $("nl-mf-avg").textContent="—";
+      $("nl-mf-summary").textContent="Ringkasan Gemini menunggu data Myfxbook yang berhasil dibaca.";
+      label.className="nl-status error";label.textContent=err.message||"Gagal mengambil sentiment Myfxbook.";
+    }
     finally{button.disabled=false;}
   });
   $("nl-mf-summarize").addEventListener("click",async()=>{
@@ -53,6 +61,5 @@
     }
   };
   mfInterval.addEventListener("change", scheduleMyfxbookRefresh);
-  scheduleMyfxbookRefresh();
 
 })();
