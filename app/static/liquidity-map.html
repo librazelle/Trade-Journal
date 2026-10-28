@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d1219">
+  <title>Liquidity Lab · Trade-Lens</title>
+  <link rel="stylesheet" href="/static/style.css?v=desktop-layout-fix-20261020">
+  <style>
+    .liq-page{display:grid;gap:20px}.liq-panel{border:1px solid var(--rule);background:var(--surface);padding:16px;min-width:0}
+    .liq-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}.liq-kicker{font:600 11px/1.4 var(--sans);letter-spacing:.13em;color:var(--muted);margin:0 0 5px}
+    .liq-actions,.liq-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.liq-controls label{display:grid;gap:4px;color:var(--muted);font-size:13px}
+    .liq-controls select{background:var(--bg);color:var(--ink);border:1px solid var(--rule);padding:9px;min-height:40px}
+    .liq-button{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--rule);padding:9px 12px;text-decoration:none;background:var(--bg);color:var(--ink);font:500 13px var(--sans);cursor:pointer}
+    .liq-button:hover{border-color:var(--muted)}.liq-status{font:600 11px var(--sans);letter-spacing:.06em;color:var(--muted)}
+    .liq-note{font-size:13px;color:var(--muted);max-width:900px}.liq-frame-wrap{position:relative;border:1px solid var(--rule);background:var(--bg);min-height:360px}
+    .liq-frame{display:block;width:100%;height:480px;border:0;background:var(--bg)}.liq-fallback{padding:14px;border-top:1px solid var(--rule);font-size:13px;color:var(--muted)}
+    .liq-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}.liq-metric{padding:12px;border:1px solid var(--rule);min-width:0}.liq-metric span{display:block;color:var(--muted);font-size:12px}.liq-metric strong{display:block;font:600 20px var(--sans);overflow-wrap:anywhere}
+    .liq-zones{display:grid;gap:8px}.liq-zone{display:grid;grid-template-columns:minmax(90px,120px) minmax(80px,1fr) minmax(90px,140px);align-items:center;gap:12px;padding:10px;border:1px solid var(--rule);font-variant-numeric:tabular-nums}
+    .liq-zone-price{font:600 14px var(--sans)}.liq-zone-label{font-size:12px;color:var(--muted)}.liq-bar{height:10px;background:var(--bg);border:1px solid var(--rule);overflow:hidden}.liq-bar-fill{height:100%;background:var(--short);opacity:.82}.liq-zone.low .liq-bar-fill{background:var(--long)}
+    .liq-empty{padding:20px;border:1px dashed var(--rule);color:var(--muted);font-size:13px}.liq-legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+    @media(max-width:620px){.liq-panel{padding:12px}.liq-frame{height:430px}.liq-metrics{grid-template-columns:1fr}.liq-zone{grid-template-columns:88px minmax(40px,1fr);gap:8px}.liq-zone-label{grid-column:1/-1}.liq-zone .liq-count{grid-column:1/-1}.liq-frame-wrap{min-height:320px}}
+  </style>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/">trade-lens</a><nav class="toolbar" aria-label="Liquidity tools"><a class="liq-button" href="/">← Dashboard</a><span class="tz">WIB · Asia/Jakarta</span></nav></header>
+  <main class="wrap liq-page">
+    <section class="liq-panel">
+      <div class="liq-head"><div><p class="liq-kicker">EXTERNAL MARKET DATA</p><h1>Liquidity Lab <span class="muted">· Myfxbook + price levels</span></h1><p class="liq-note">Dua panel dengan arti berbeda: Myfxbook mengestimasi kondisi likuiditas pasar secara agregat; panel bawah menandai kandidat level likuiditas ICT dari swing candle, bukan data order book atau stop-loss aktual.</p></div><div class="liq-actions"><a class="liq-button" href="https://www.myfxbook.com/forex-market/liquidity" target="_blank" rel="noopener noreferrer">Buka Myfxbook ↗</a></div></div>
+    </section>
+    <section class="liq-panel">
+      <div class="liq-head"><div><p class="liq-kicker">SOURCE 01</p><h2>Myfxbook · Market Liquidity</h2><p class="liq-note">Sumber eksternal. Data halaman bergantung pada JavaScript dan kebijakan embed Myfxbook; jika frame diblokir, buka sumber melalui tombol di atas.</p></div><span class="liq-status" id="myfxbook-status">MEMUAT SUMBER</span></div>
+      <div class="liq-frame-wrap"><iframe class="liq-frame" id="myfxbook-frame" src="https://www.myfxbook.com/forex-market/liquidity" title="Myfxbook Forex Market Liquidity" loading="lazy" referrerpolicy="no-referrer"></iframe><div class="liq-fallback">Jika panel kosong atau menampilkan error, gunakan <a href="https://www.myfxbook.com/forex-market/liquidity" target="_blank" rel="noopener noreferrer">halaman resmi Myfxbook</a>. Trade-Lens tidak mengekstrak endpoint privat atau mengklaim data halaman ini sebagai heatmap harga.</div></div>
+    </section>
+    <section class="liq-panel">
+      <div class="liq-head"><div><p class="liq-kicker">SOURCE 02 · EXPERIMENTAL</p><h2>ICT Candidate Liquidity Zones</h2><p class="liq-note">Level dibentuk dari pivot high/low berulang pada candle publik. Instrumen XAUUSD memakai proxy futures emas GC=F dari endpoint market monitor, bukan feed spot broker. Anggap sebagai area untuk ditinjau, bukan bukti resting orders.</p></div><span class="liq-status" id="zones-status">MENUNGGU DATA</span></div>
+      <div class="liq-controls"><label>Instrumen<select id="liq-instrument"><option value="XAUUSD">Gold · GC=F proxy</option><option value="NASDAQ100">Nasdaq 100 · ^NDX proxy</option><option value="SP500">S&amp;P 500 · ^GSPC proxy</option></select></label><label>Timeframe<select id="liq-timeframe"><option value="5m">M5</option><option value="15m">M15</option><option value="30m">M30</option><option value="60m">H1</option></select></label><button type="button" class="liq-button" id="liq-refresh">Refresh levels</button></div>
+      <div class="liq-metrics"><div class="liq-metric"><span>Last candle close</span><strong id="liq-price">—</strong></div><div class="liq-metric"><span>Candidate zones</span><strong id="liq-zone-count">—</strong></div><div class="liq-metric"><span>Data timestamp</span><strong id="liq-time" style="font-size:13px">—</strong></div></div>
+      <div class="liq-legend"><span>Atas harga: kandidat buy-side liquidity (BSL)</span><span>Bawah harga: kandidat sell-side liquidity (SSL)</span><span>Intensitas = jumlah pivot yang terklaster, bukan volume uang.</span></div>
+      <div id="liq-zones" class="liq-zones" aria-live="polite"><div class="liq-empty">Memuat candle publik…</div></div>
+      <p class="liq-note" id="liq-warning">Feed publik bisa tertunda atau tidak tersedia. Tidak digunakan sebagai sinyal buy/sell.</p>
+    </section>
+  </main>
+<script>
+(function(){
+  const instrument=document.getElementById('liq-instrument'), timeframe=document.getElementById('liq-timeframe');
+  const refresh=document.getElementById('liq-refresh'), zones=document.getElementById('liq-zones'), status=document.getElementById('zones-status');
+  const fmtPrice=v=>Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtTime=v=>{try{return new Date(v).toLocaleString('id-ID',{timeZone:'Asia/Jakarta',dateStyle:'short',timeStyle:'short'})+' WIB'}catch(_){return '—'}};
+  function renderZones(candles){
+    if(candles.length<5) throw new Error('Candle terlalu sedikit untuk mencari pivot.');
+    const ranges=candles.map(c=>c.high-c.low).filter(v=>Number.isFinite(v)&&v>0).sort((a,b)=>a-b);
+    const medianRange=ranges[Math.floor(ranges.length/2)]||1;
+    const tolerance=Math.max(medianRange*0.65,Math.abs(candles[candles.length-1].close)*0.00012);
+    const pivots=[];
+    for(let i=2;i<candles.length-2;i++){
+      const c=candles[i], prev=candles.slice(i-2,i), next=candles.slice(i+1,i+3);
+      if(prev.every(x=>c.high>=x.high)&&next.every(x=>c.high>=x.high))pivots.push({price:c.high,side:'high',time:c.time});
+      if(prev.every(x=>c.low<=x.low)&&next.every(x=>c.low<=x.low))pivots.push({price:c.low,side:'low',time:c.time});
+    }
+    const clusters=[];
+    pivots.forEach(p=>{
+      let target=clusters.find(z=>z.side===p.side&&Math.abs(z.price-p.price)<=tolerance);
+      if(!target){target={side:p.side,price:p.price,count:0,lastTime:p.time};clusters.push(target)}
+      target.price=(target.price*target.count+p.price)/(target.count+1);target.count++;target.lastTime=Math.max(target.lastTime,p.time);
+    });
+    const current=candles[candles.length-1].close;
+    const selected=clusters.filter(z=>z.count>=2).sort((a,b)=>Math.abs(a.price-current)-Math.abs(b.price-current)).slice(0,18).sort((a,b)=>b.price-a.price);
+    document.getElementById('liq-price').textContent=fmtPrice(current);
+    document.getElementById('liq-zone-count').textContent=String(selected.length);
+    document.getElementById('liq-time').textContent=fmtTime(candles[candles.length-1].time*1000);
+    zones.replaceChildren();
+    if(!selected.length){zones.innerHTML='<div class="liq-empty">Belum ada cluster pivot berulang yang lolos ambang pada data ini. Ini bukan berarti tidak ada likuiditas.</div>';return}
+    const maxCount=Math.max(...selected.map(z=>z.count));
+    selected.forEach(z=>{
+      const above=z.price>current, row=document.createElement('div');row.className='liq-zone '+(above?'high':'low');
+      const p=document.createElement('strong');p.className='liq-zone-price';p.textContent=fmtPrice(z.price);
+      const bar=document.createElement('div');bar.className='liq-bar';const fill=document.createElement('div');fill.className='liq-bar-fill';fill.style.width=Math.max(8,100*z.count/maxCount)+'%';bar.append(fill);
+      const label=document.createElement('span');label.className='liq-zone-label';label.textContent=(above?'BSL candidate · di atas harga':'SSL candidate · di bawah harga')+' · pivot cluster';
+      const count=document.createElement('span');count.className='liq-count';count.textContent=z.count+' pivot · '+fmtTime(z.lastTime*1000);
+      row.append(p,bar,label,count);zones.append(row);
+    });
+  }
+  async function load(){
+    refresh.disabled=true;status.textContent='MEMUAT';zones.innerHTML='<div class="liq-empty">Mengambil candle publik dan menghitung kandidat level…</div>';
+    try{
+      const res=await fetch('/api/market-monitor/'+encodeURIComponent(instrument.value)+'?interval='+encodeURIComponent(timeframe.value),{cache:'no-store',headers:{Accept:'application/json'}});
+      const data=await res.json();if(!res.ok)throw new Error(data.detail||('HTTP '+res.status));
+      renderZones(data.candles||[]);status.textContent=data.cache_status==='STALE'?'DATA CACHE LAMA':(data.cache_status==='HIT'?'CACHE':'DATA DITERIMA');
+      document.getElementById('liq-warning').textContent='Sumber: '+(data.source||'public chart endpoint')+' · '+(data.message||'Latency tidak dijamin.')+(data.warning?' · '+data.warning:'');
+    }catch(e){zones.innerHTML='';const box=document.createElement('div');box.className='liq-empty';box.textContent='Data belum tersedia: '+e.message;zones.append(box);status.textContent='DATA TIDAK TERSEDIA'}
+    finally{refresh.disabled=false}
+  }
+  refresh.addEventListener('click',load);instrument.addEventListener('change',load);timeframe.addEventListener('change',load);
+  const frame=document.getElementById('myfxbook-frame');frame.addEventListener('load',()=>{document.getElementById('myfxbook-status').textContent='FRAME DIMUAT';});
+  window.setTimeout(()=>{const s=document.getElementById('myfxbook-status');if(s.textContent==='MEMUAT SUMBER')s.textContent='CEK LINK EKSTERNAL'},7000);
+  load();
+})();
+</script>
+</body>
+</html>
