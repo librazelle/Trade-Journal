@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}News Liquidity Lab · trade-lens{% endblock %}
+{% block page_scripts %}<script src="/static/news-liquidity.js?v=1" defer></script>{% endblock %}
+{% block content %}
+<section class="nl-page">
+  <p class="nl-kicker">EVENT STUDY / LIQUIDITY MAP</p>
+  <h1>News Liquidity Lab</h1>
+  <p class="nl-intro">Bandingkan struktur harga sebelum dan sesudah rilis berita. Zona dihitung dari swing high/low candle yang tersedia, bukan data order book atau posisi institusi.</p>
+  <form id="nl-form" class="nl-controls">
+    <label>Instrumen
+      <select id="nl-instrument"><option value="XAUUSD">XAUUSD / Gold proxy</option><option value="NASDAQ100">Nasdaq 100</option><option value="SP500">S&amp;P 500</option></select>
+    </label>
+    <label>Timeframe
+      <select id="nl-interval"><option value="1m">1 menit</option><option value="5m" selected>5 menit</option><option value="15m">15 menit</option><option value="30m">30 menit</option><option value="60m">1 jam</option></select>
+    </label>
+    <label>Waktu rilis (WIB)<input id="nl-event-time" type="datetime-local" required></label>
+    <label>Jendela sebelum/sesudah
+      <select id="nl-window"><option value="15">15 menit</option><option value="30">30 menit</option><option value="60" selected>60 menit</option><option value="120">120 menit</option><option value="240">240 menit</option></select>
+    </label>
+    <button type="submit" id="nl-run">Analisis event</button>
+  </form>
+  <div id="nl-status" class="nl-status" role="status">Siap. Pilih waktu rilis untuk memetakan pergerakan di sekitarnya.</div>
+  <div class="nl-metrics" id="nl-metrics">
+    <article><span>Range sebelum</span><strong id="nl-pre-range">—</strong><small id="nl-pre-count">Belum dianalisis</small></article>
+    <article><span>Range sesudah</span><strong id="nl-post-range">—</strong><small id="nl-post-count">Belum dianalisis</small></article>
+    <article><span>High sebelum</span><strong id="nl-pre-high">—</strong><small>Potensi BSL / buy-side liquidity</small></article>
+    <article><span>Low sebelum</span><strong id="nl-pre-low">—</strong><small>Potensi SSL / sell-side liquidity</small></article>
+  </div>
+  <section class="nl-panel">
+    <div class="nl-panel-head"><div><h2>Event timeline</h2><p>Harga dan candle yang tersedia di sekitar waktu rilis.</p></div><span id="nl-source">Sumber: Yahoo Finance chart endpoint</span></div>
+    <div id="nl-timeline" class="nl-timeline"><p class="nl-empty">Jalankan analisis untuk melihat timeline.</p></div>
+  </section>
+  <section class="nl-panel">
+    <div class="nl-panel-head"><div><h2>Liquidity sweep check</h2><p>Deteksi sederhana: high/low sebelum rilis ditembus setelah rilis.</p></div></div>
+    <div id="nl-sweeps" class="nl-sweeps"><p class="nl-empty">Belum ada hasil.</p></div>
+  </section>
+  <p class="nl-disclaimer"><strong>Batasan data:</strong> sumber publik dan candle historis yang tersedia terbatas; data tidak dijamin realtime. XAUUSD menggunakan proxy gold futures <code>GC=F</code>, bukan spot feed broker. BSL/SSL di sini adalah estimasi level dari harga, bukan bukti resting orders, order book, atau data CoinGlass. Jangan gunakan hasil ini sebagai sinyal entry otomatis.</p>
+</section>
+<style>
+.nl-page{max-width:1120px;margin:0 auto;padding:10px 0 36px}.nl-kicker{color:#8ba8d8;font:600 11px/1.4 var(--sans);letter-spacing:.16em}.nl-page h1{margin:4px 0 8px}.nl-intro{max-width:780px;color:var(--muted);margin:0 0 20px}.nl-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:16px;background:var(--surface);border:1px solid var(--rule)}.nl-controls label{display:grid;gap:6px;color:var(--muted);font-size:12px}.nl-controls select,.nl-controls input{width:100%;min-width:0;padding:11px;background:var(--bg);color:var(--ink);border:1px solid var(--rule);border-radius:2px;font:16px var(--sans)}.nl-controls button{grid-column:1/-1}.nl-status{padding:12px 0;color:var(--muted);font-size:13px}.nl-status.error{color:#e27d6a}.nl-status.ok{color:#6fbf94}.nl-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:6px 0 20px}.nl-metrics article,.nl-panel{background:var(--surface);border:1px solid var(--rule);padding:14px;min-width:0}.nl-metrics span,.nl-metrics small{display:block;color:var(--muted);font-size:12px}.nl-metrics strong{display:block;font:600 21px/1.4 var(--sans);overflow-wrap:anywhere}.nl-panel{margin:12px 0}.nl-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.nl-panel-head h2{margin:0}.nl-panel-head p{margin:4px 0 12px;color:var(--muted);font-size:12px}.nl-panel-head>span{color:var(--muted);font-size:11px;text-align:right}.nl-timeline{display:grid;grid-template-columns:1fr 1fr;gap:10px}.nl-period{padding:12px;border:1px solid var(--rule);min-width:0}.nl-period h3{font-size:14px}.nl-candle-list{max-height:280px;overflow:auto;font:12px/1.7 monospace}.nl-candle-list div{display:grid;grid-template-columns:1fr repeat(4,auto);gap:8px;border-top:1px solid #26334a;padding:3px 0}.nl-candle-list .event-candle{color:#e7bd69}.nl-empty{color:var(--muted);font-size:13px}.nl-sweeps{display:grid;gap:8px}.nl-sweep{padding:10px;border-left:3px solid var(--rule);background:var(--bg)}.nl-sweep.hit{border-color:#e7bd69}.nl-sweep strong{display:block}.nl-sweep span{font-size:12px;color:var(--muted)}.nl-disclaimer{font-size:12px;color:var(--muted);margin-top:18px}.nl-disclaimer code{color:var(--ink)}@media(max-width:760px){.nl-controls{grid-template-columns:1fr 1fr}.nl-metrics{grid-template-columns:1fr 1fr}.nl-panel-head{display:block}.nl-panel-head>span{text-align:left}.nl-timeline{grid-template-columns:1fr}.nl-candle-list div{grid-template-columns:1fr repeat(2,auto)}.nl-candle-list div span:nth-child(4),.nl-candle-list div span:nth-child(5){display:none}}
+</style>
+{% endblock %}
