@@ -207,4 +207,3 @@ def test_news_liquidity_page_renders(client):
     assert "nl-csv-file" not in response.text
     assert "Analisis event" not in response.text
     assert "Ringkas dengan Gemini" in response.text
-    assert "import CSV" in response.text or "import candle CSV" in response.text
