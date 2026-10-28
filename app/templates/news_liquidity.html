@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}News Liquidity Lab · trade-lens{% endblock %}
-{% block page_scripts %}<script src="/static/news-liquidity.js?v=9" defer></script>{% endblock %}
+{% block title %}Myfxbook Sentiment Lab · trade-lens{% endblock %}
+{% block page_scripts %}<script src="/static/news-liquidity.js?v=10" defer></script>{% endblock %}
 {% block content %}
 <section class="nl-page">
   <p class="nl-kicker">EVENT STUDY / LIQUIDITY MAP</p>
   <h1>News Liquidity Lab</h1>
-  <p class="nl-intro">Konteks sentimen komunitas XAUUSD dan data derivatif crypto. Halaman ini tidak mengimpor candle atau menghitung zona likuiditas dari chart.</p>
+  <p class="nl-intro">Ambil sentimen publik XAUUSD dari Myfxbook, lalu gunakan Gemini untuk menjelaskannya dengan bahasa sederhana. Tidak memakai Yahoo Finance atau API key data market berbayar.</p>
   <section class="nl-panel nl-sentiment-panel" id="nl-myfxbook">
     <div class="nl-panel-head"><div><h2>Myfxbook Sentiment · XAUUSD</h2><p>Posisi komunitas trader sebagai konteks, bukan sinyal otomatis.</p></div><a href="https://www.myfxbook.com/community/outlook/XAUUSD" target="_blank" rel="noopener noreferrer">Sumber ↗</a></div>
     <div class="nl-derivative-controls"><label>Interval refresh Myfxbook<select id="nl-mf-interval"><option value="300000">5 menit</option><option value="900000">15 menit</option><option value="3600000">60 menit</option></select></label><button type="button" id="nl-mf-load">Ambil sentiment XAUUSD</button></div>
@@ -19,23 +19,6 @@
     <div class="nl-mf-summary-head"><h3>Gemini menjelaskan</h3><button type="button" id="nl-mf-summarize" disabled>Ringkas dengan Gemini</button></div>
     <div id="nl-mf-summary" class="nl-mf-summary"><p class="nl-empty">Ringkasan belum dibuat.</p></div>
     <p id="nl-mf-source" class="nl-empty">Data publik bisa tertunda hingga 60 menit. Sentimen Myfxbook bukan keseluruhan pasar forex atau order book.</p>
-  </section>
-  <section class="nl-panel" id="nl-derivatives">
-    <div class="nl-panel-head"><div><h2>Crypto derivatives · CoinGlass</h2><p>Riwayat liquidation dan open interest crypto. Memerlukan API key CoinGlass di server.</p></div></div>
-    <div class="nl-derivative-controls">
-      <label>Crypto symbol
-        <select id="nl-cg-symbol"><option value="BTC">BTC</option><option value="ETH">ETH</option><option value="SOL">SOL</option><option value="BNB">BNB</option><option value="XRP">XRP</option></select>
-      </label>
-      <button type="button" id="nl-cg-run">Muat data derivatif</button>
-    </div>
-    <div id="nl-cg-status" class="nl-status">Menggunakan endpoint publik Binance Futures. Tidak memerlukan API key.</div>
-    <div class="nl-metrics">
-      <article><span>Liquidation historis</span><strong id="nl-cg-total">N/A</strong><small id="nl-cg-split">Tidak tersedia di endpoint publik ini</small></article>
-      <article><span>Funding rate</span><strong id="nl-cg-long">—</strong><small id="nl-cg-long-pct">Rate pendanaan terbaru</small></article>
-      <article><span>Perubahan harga 24 jam</span><strong id="nl-cg-short">—</strong><small id="nl-cg-short-pct">Perubahan persentase</small></article>
-      <article><span>Open interest change</span><strong id="nl-cg-oi">—</strong><small id="nl-cg-oi-note">Perubahan nilai open interest pada rentang terpilih</small></article>
-    </div>
-    <p id="nl-cg-source" class="nl-empty">Sumber: Binance USDⓈ-M Futures publik. Riwayat liquidation tidak tersedia melalui endpoint ini. Data crypto bukan proxy likuiditas XAUUSD atau Nasdaq.</p>
   </section>
   <p class="nl-disclaimer"><strong>Batasan data:</strong> panel sentiment berasal dari Myfxbook dan data derivatif crypto memakai endpoint publik Binance tanpa API key. Riwayat liquidation historis tidak tersedia melalui endpoint publik ini. Data crypto bukan proxy likuiditas XAUUSD/Nasdaq. Tidak ada analisis candle atau sinyal entry otomatis pada halaman ini.</p>
 </section>
