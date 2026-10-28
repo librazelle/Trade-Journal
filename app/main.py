@@ -196,6 +196,8 @@ async def myfxbook_outlook(symbol: str = "XAUUSD"):
             return data
         except (httpx.HTTPError, ValueError, TypeError) as exc:
             errors.append(type(exc).__name__)
+    if errors and all(error == "HTTP 403" for error in errors):
+        raise HTTPException(502, "Myfxbook menolak akses otomatis dari server Trade-Lens (HTTP 403). Halaman ini publik di browser, tetapi provider memblokir pembacaan otomatis dari hosting. Data tidak akan ditebak; coba lagi nanti atau buka sumber Myfxbook langsung.")
     raise HTTPException(502, "Myfxbook outlook tidak bisa dibaca saat ini: " + "; ".join(errors[-2:]))
 
 @app.post("/api/myfxbook/outlook/summarize")
