@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}News Liquidity Lab · trade-lens{% endblock %}
-{% block page_scripts %}<script src="/static/news-liquidity.js?v=6" defer></script>{% endblock %}
+{% block page_scripts %}<script src="/static/news-liquidity.js?v=7" defer></script>{% endblock %}
 {% block content %}
 <section class="nl-page">
   <p class="nl-kicker">EVENT STUDY / LIQUIDITY MAP</p>
@@ -8,7 +8,7 @@
   <p class="nl-intro">Konteks sentimen komunitas XAUUSD dan data derivatif crypto. Halaman ini tidak mengimpor candle atau menghitung zona likuiditas dari chart.</p>
   <section class="nl-panel nl-sentiment-panel" id="nl-myfxbook">
     <div class="nl-panel-head"><div><h2>Myfxbook Sentiment · XAUUSD</h2><p>Posisi komunitas trader sebagai konteks, bukan sinyal otomatis.</p></div><a href="https://www.myfxbook.com/community/outlook/XAUUSD" target="_blank" rel="noopener noreferrer">Sumber ↗</a></div>
-    <button type="button" id="nl-mf-load">Ambil sentiment XAUUSD</button>
+    <div class="nl-derivative-controls"><label>Interval refresh Myfxbook<select id="nl-mf-interval"><option value="300000">5 menit</option><option value="900000">15 menit</option><option value="3600000">60 menit</option></select></label><button type="button" id="nl-mf-load">Ambil sentiment XAUUSD</button></div>
     <div id="nl-mf-status" class="nl-status">Ambil data publik Myfxbook, lalu minta Gemini menjelaskannya dengan bahasa sederhana.</div>
     <div class="nl-metrics nl-mf-metrics">
       <article><span>Posisi short</span><strong id="nl-mf-short">—</strong><small id="nl-mf-short-detail">Persentase komunitas</small></article>
