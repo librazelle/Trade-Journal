@@ -133,18 +133,19 @@ async def myfxbook_outlook(symbol: str = "XAUUSD"):
             text_blob = " ".join(parser.parts)
             short_match = re.search(r"(\d+(?:\.\d+)?)\s*%\s*of the forex traders are currently going short", text_blob, re.I)
             long_match = re.search(r"(\d+(?:\.\d+)?)\s*%\s*of the forex traders are going long", text_blob, re.I)
-            average_prices = re.findall(r"average price of\s*([\d,.]+)", text_blob, re.I)
+            percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", text_blob)
+            average_prices = re.findall(r"average price(?: of)?\s*([\d,.]+)", text_blob, re.I)
             table = re.search(
                 r"XAUUSD\s+short\s+(\d+(?:\.\d+)?)\s*%\s+([\d,.]+)\s*lots\s+([\d,]+)\s+Long\s+(\d+(?:\.\d+)?)\s*%\s+([\d,.]+)\s*lots\s+([\d,]+)",
                 text_blob, re.I
             )
-            if not short_match and not long_match and not table:
+            if not short_match and not long_match and not table and len(percentages) < 2:
                 errors.append("Myfxbook page structure changed or sentiment data was not present")
                 continue
             def number(value):
                 return float(value.replace(",", ""))
-            short_pct = number(short_match.group(1)) if short_match else number(table.group(1))
-            long_pct = number(long_match.group(1)) if long_match else number(table.group(4))
+            short_pct = number(short_match.group(1)) if short_match else (number(table.group(1)) if table else number(percentages[0]))
+            long_pct = number(long_match.group(1)) if long_match else (number(table.group(4)) if table else number(percentages[1]))
             short_avg = number(average_prices[0]) if len(average_prices) > 0 else None
             long_avg = number(average_prices[1]) if len(average_prices) > 1 else None
             short_lots = number(table.group(2)) if table else None
