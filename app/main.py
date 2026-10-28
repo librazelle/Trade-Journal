@@ -165,6 +165,12 @@ async def market_monitor(instrument: str, interval: str = "1m"):
     raise HTTPException(502, f"Data market sementara tidak tersedia ({item['ticker']}): {detail}. Cache valid belum tersedia; coba lagi nanti.")
     
 
+@app.get("/news-liquidity", response_class=HTMLResponse)
+def news_liquidity_page(request: Request):
+    """News Liquidity Lab: compare recent market candles around an economic release."""
+    return templates.TemplateResponse(request, "news_liquidity.html", {})
+
+
 # ---------- helper input ----------
 
 def _parse_float(value: str, label: str, required: bool = False) -> float | None:
