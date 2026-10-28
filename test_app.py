@@ -229,7 +229,9 @@ def test_news_liquidity_page_renders(client):
     assert "News Liquidity Lab" in response.text
     assert "Myfxbook Sentiment" in response.text
     assert "nl-mf-load" in response.text
-    assert "Crypto derivatives" in response.text
+    assert "Ringkas dengan Gemini" in response.text
+    assert "CoinGlass" not in response.text
+    assert "Yahoo Finance" not in response.text
     assert "nl-csv-file" not in response.text
     assert "Analisis event" not in response.text
     assert "Ringkas dengan Gemini" in response.text
