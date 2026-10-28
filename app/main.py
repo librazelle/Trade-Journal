@@ -226,7 +226,7 @@ async def summarize_myfxbook_outlook(request: Request):
 @app.get("/news-liquidity", response_class=HTMLResponse)
 def news_liquidity_page(request: Request):
     """News Liquidity Lab: compare recent market candles around an economic release."""
-    return templates.TemplateResponse(request, "news_liquidity.html", {})
+    return templates.TemplateResponse(request, "news_liquidity.html", {"coinglass_configured": bool(settings.coinglass_api_key)})
 
 
 # ---------- helper input ----------
