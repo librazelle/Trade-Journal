@@ -1,6 +1,5 @@
 (() => {
   const $ = id => document.getElementById(id);
-  const form = $("nl-form"), run = $("nl-run"), status = $("nl-status");
   let myfxbookData=null;
   const mfNum=n=>Number.isFinite(Number(n))?Number(n).toLocaleString("en-US",{maximumFractionDigits:2}):"—";
   const mfMoney=n=>Number.isFinite(Number(n))?Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:4}):"—";
@@ -45,14 +44,14 @@
     const button=$("nl-cg-run"), cgStatus=$("nl-cg-status");
     button.disabled=true; cgStatus.className="nl-status"; cgStatus.textContent="Memuat data derivatif CoinGlass…";
     try {
-      const eventMs=new Date($("nl-event-time").value).getTime();
-      if(!Number.isFinite(eventMs)) throw new Error("Isi waktu rilis terlebih dahulu.");
-      const windowMs=Number($("nl-window").value)*60*1000;
+      // Candle/event controls were removed. Query a rolling 24-hour window.
+      const endMs=Date.now();
+      const startMs=endMs-24*60*60*1000;
       const params=new URLSearchParams({
         symbol:$("nl-cg-symbol").value,
-        interval:$("nl-interval").value==="60m"?"1h":$("nl-interval").value,
-        start_time:String(eventMs-windowMs),
-        end_time:String(eventMs+windowMs)
+        interval:"5m",
+        start_time:String(startMs),
+        end_time:String(endMs)
       });
       const response=await fetch("/api/news-liquidity/coinglass?"+params.toString(),{cache:"no-store"});
       const data=await response.json();
