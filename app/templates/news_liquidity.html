@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}News Liquidity Lab · trade-lens{% endblock %}
-{% block page_scripts %}<script src="/static/news-liquidity.js?v=3" defer></script>{% endblock %}
+{% block page_scripts %}<script src="/static/news-liquidity.js?v=4" defer></script>{% endblock %}
 {% block content %}
 <section class="nl-page">
   <p class="nl-kicker">EVENT STUDY / LIQUIDITY MAP</p>
@@ -22,7 +22,7 @@
   </section>
   <form id="nl-form" class="nl-controls">
     <label>Instrumen
-      <select id="nl-instrument"><option value="XAUUSD">XAUUSD / Gold proxy</option><option value="NASDAQ100">Nasdaq 100</option><option value="SP500">S&amp;P 500</option></select>
+      <select id="nl-instrument"><option value="XAUUSD">XAUUSD / Gold</option><option value="NASDAQ100">Nasdaq 100</option><option value="SP500">S&amp;P 500</option></select>
     </label>
     <label>Timeframe
       <select id="nl-interval"><option value="1m">1 menit</option><option value="5m" selected>5 menit</option><option value="15m">15 menit</option><option value="30m">30 menit</option><option value="60m">1 jam</option></select>
@@ -34,8 +34,8 @@
     <button type="submit" id="nl-run">Analisis event</button>
   </form>
   <section class="nl-panel nl-csv-panel">
-    <h2>Fallback data: import candle CSV</h2>
-    <p>Kalau Yahoo Finance kena rate limit, unggah CSV OHLC dari TradingView atau export broker. Kolom yang dibutuhkan: time/date, open, high, low, close.</p>
+    <h2>Data candle: import CSV</h2>
+    <p>Trade-Lens tidak memakai Yahoo Finance. Unggah CSV OHLC dari TradingView atau export broker. Kolom wajib: time/date, open, high, low, close.</p>
     <label>File CSV <input id="nl-csv-file" type="file" accept=".csv,text/csv"></label>
     <div id="nl-csv-status" class="nl-status">Belum ada file diimpor. Data CSV diproses lokal di browser.</div>
   </section>
