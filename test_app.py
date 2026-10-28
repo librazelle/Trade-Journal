@@ -133,17 +133,43 @@ def test_market_monitor_endpoint_is_removed(client):
     assert response.status_code == 404
 
 
-def test_coinglass_endpoint_explains_missing_api_key(client, monkeypatch):
-    monkeypatch.setattr(settings, "coinglass_api_key", "")
-    response = client.get("/api/news-liquidity/coinglass?symbol=BTC&interval=5m")
+def test_public_crypto_derivatives_endpoint_needs_no_api_key(client, monkeypatch):
+    from app import main
 
+    class FakePublicResponse:
+        def __init__(self, payload):
+            self.status_code = 200
+            self._payload = payload
+        def raise_for_status(self):
+            return None
+        def json(self):
+            return self._payload
+
+    class FakePublicClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            return False
+        async def get(self, url, params=None):
+            if url.endswith("/futures/data/openInterestHist"):
+                return FakePublicResponse([{"timestamp": 1000, "sumOpenInterest": "10", "sumOpenInterestValue": "500000"}])
+            if url.endswith("/fapi/v1/ticker/24hr"):
+                return FakePublicResponse({"priceChangePercent": "1.5", "lastPrice": "50000", "quoteVolume": "123456"})
+            if url.endswith("/fapi/v1/fundingRate"):
+                return FakePublicResponse([{"fundingRate": "0.0001"}])
+            raise AssertionError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr(main.httpx, "AsyncClient", FakePublicClient)
+    response = client.get("/api/news-liquidity/coinglass?symbol=BTC&interval=5m")
     assert response.status_code == 200
     data = response.json()
-    assert data["configured"] is False
-    assert "COINGLASS_API_KEY" in data["message"]
-    assert data["liquidations"] == []
-    assert data["open_interest"] == []
-
+    assert data["configured"] is True
+    assert data["source"] == "Binance public USDⓈ-M Futures API"
+    assert data["liquidations_available"] is False
+    assert data["open_interest"][0]["open_interest_value"] == 500000
+    assert data["funding_rate"] == 0.0001
 
 class _FakeMyfxbookResponse:
     status_code = 200
