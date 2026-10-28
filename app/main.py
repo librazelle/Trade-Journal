@@ -131,7 +131,7 @@ async def myfxbook_outlook(symbol: str = "XAUUSD"):
             parser = _MyfxbookTextParser()
             parser.feed(response.text)
             text_blob = " ".join(parser.parts)
-            short_match = re.search(r"(\d+(?:\.\d+)?)\s*%\s*of the forex traders are currently going short", text_blob, re.I)
+            short_match = re.search(r"(\d+(?:\.\d+)?)\s*%\s*of the forex traders are currently going short(?:\s+with\s+XAU/?USD)?", text_blob, re.I)
             long_match = re.search(r"(\d+(?:\.\d+)?)\s*%\s*of the forex traders are going long", text_blob, re.I)
             percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", text_blob)
             average_prices = re.findall(r"average price(?: of)?\s*([\d,.]+)", text_blob, re.I)
