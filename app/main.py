@@ -3,6 +3,8 @@ import asyncio
 import base64
 import json
 import math
+import re
+from html.parser import HTMLParser
 
 import httpx
 from contextlib import asynccontextmanager
@@ -200,6 +202,133 @@ async def coinglass_news_liquidity(symbol: str = "BTC", interval: str = "5m", st
     except (httpx.HTTPError, ValueError, TypeError) as exc:
         raise HTTPException(502, "CoinGlass data unavailable. Check API key, plan/interval limits, and supported symbol.") from exc
     return {"configured": True, "source": "CoinGlass API v4", "symbol": symbol, "interval": interval, "start_time": start_ms, "end_time": end_ms, "exchange_list": ["Binance", "OKX", "Bybit"], "liquidations": liquidations, "open_interest": open_interest, "message": "Crypto derivatives data only; not XAUUSD or Nasdaq futures liquidity."}
+
+class _MyfxbookTextParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.parts = []
+    def handle_data(self, data):
+        cleaned = " ".join(data.split())
+        if cleaned:
+            self.parts.append(cleaned)
+
+_MYFXBOOK_OUTLOOK_CACHE = {}
+_MYFXBOOK_OUTLOOK_TTL = 60
+
+@app.get("/api/myfxbook/outlook/{symbol}")
+async def myfxbook_outlook(symbol: str = "XAUUSD"):
+    """Read the public Myfxbook sentiment page; values may be delayed by the provider."""
+    normalized = symbol.strip().upper()
+    if normalized != "XAUUSD":
+        raise HTTPException(400, "Saat ini Myfxbook outlook hanya diaktifkan untuk XAUUSD.")
+    now = datetime.now(timezone.utc)
+    cached = _MYFXBOOK_OUTLOOK_CACHE.get(normalized)
+    if cached and (now - cached["_cached_at"]).total_seconds() < _MYFXBOOK_OUTLOOK_TTL:
+        return {**{k: v for k, v in cached.items() if not k.startswith("_")}, "cache_status": "HIT"}
+    urls = [
+        "https://www.myfxbook.com/community/outlook/XAUUSD",
+        "https://www.myfxbook.id/community/outlook/XAUUSD",
+    ]
+    errors = []
+    for url in urls:
+        try:
+            async with httpx.AsyncClient(timeout=12, follow_redirects=True, headers={
+                "User-Agent": "Mozilla/5.0 (compatible; Trade-Lens/1.0; public sentiment reader)",
+                "Accept": "text/html,application/xhtml+xml",
+            }) as client:
+                response = await client.get(url)
+            if response.status_code >= 400:
+                errors.append(f"HTTP {response.status_code}")
+                continue
+            parser = _MyfxbookTextParser()
+            parser.feed(response.text)
+            text_blob = " ".join(parser.parts)
+            summary = re.search(
+                r"(\d+(?:\.\d+)?)\s*% of the forex traders are currently going short.*?average price of\s*([\d,.]+).*?(\d+(?:\.\d+)?)\s*% of the forex traders are going long.*?average price of\s*([\d,.]+)",
+                text_blob, re.I
+            )
+            table = re.search(
+                r"XAUUSD\s+short\s+(\d+(?:\.\d+)?)\s*%\s+([\d,.]+)\s*lots\s+([\d,]+)\s+Long\s+(\d+(?:\.\d+)?)\s*%\s+([\d,.]+)\s*lots\s+([\d,]+)",
+                text_blob, re.I
+            )
+            if not summary and not table:
+                errors.append("Myfxbook page structure changed or sentiment data was not present")
+                continue
+            def number(value):
+                return float(value.replace(",", ""))
+            short_pct = number(summary.group(1)) if summary else number(table.group(1))
+            long_pct = number(summary.group(3)) if summary else number(table.group(4))
+            short_avg = number(summary.group(2)) if summary else None
+            long_avg = number(summary.group(4)) if summary else None
+            short_lots = number(table.group(2)) if table else None
+            short_positions = int(table.group(3).replace(",", "")) if table else None
+            long_lots = number(table.group(5)) if table else None
+            long_positions = int(table.group(6).replace(",", "")) if table else None
+            data = {
+                "symbol": "XAUUSD", "short_percentage": short_pct, "long_percentage": long_pct,
+                "short_average_price": short_avg, "long_average_price": long_avg,
+                "short_lots": short_lots, "long_lots": long_lots,
+                "short_positions": short_positions, "long_positions": long_positions,
+                "source": "Myfxbook Community Outlook", "source_url": url,
+                "source_delay_minutes": 60, "fetched_at": now.isoformat(),
+                "notice": "Data publik Myfxbook dapat tertunda hingga 60 menit. Ini sentimen posisi komunitas, bukan order book global atau sinyal arah harga.",
+                "cache_status": "MISS",
+            }
+            _MYFXBOOK_OUTLOOK_CACHE[normalized] = {**data, "_cached_at": now}
+            return data
+        except (httpx.HTTPError, ValueError, TypeError) as exc:
+            errors.append(type(exc).__name__)
+    raise HTTPException(502, "Myfxbook outlook tidak bisa dibaca saat ini: " + "; ".join(errors[-2:]))
+
+@app.post("/api/myfxbook/outlook/summarize")
+async def summarize_myfxbook_outlook(request: Request):
+    """Explain the supplied Myfxbook sentiment metrics in plain Indonesian using Gemini."""
+    if not settings.gemini_api_key:
+        raise HTTPException(503, "Gemini belum dikonfigurasi. Admin perlu mengisi GEMINI_API_KEY di environment server.")
+    try:
+        data = await request.json()
+    except ValueError:
+        raise HTTPException(400, "Payload JSON tidak valid.") from None
+    if not isinstance(data, dict) or data.get("symbol") != "XAUUSD":
+        raise HTTPException(400, "Data sentiment XAUUSD tidak valid.")
+    allowed = ("short_percentage", "long_percentage", "short_average_price", "long_average_price", "short_lots", "long_lots", "short_positions", "long_positions")
+    metrics = {key: data.get(key) for key in allowed if data.get(key) is not None}
+    if not {"short_percentage", "long_percentage"}.issubset(metrics):
+        raise HTTPException(400, "Persentase long/short belum tersedia.")
+    prompt = (
+        "Jelaskan data sentimen Myfxbook XAUUSD ini dalam bahasa Indonesia yang sangat gampang dipahami trader retail. "
+        "Pakai format: DATA; ARTINYA; SKENARIO ICT; KONFIRMASI YANG DITUNGGU; RISIKO SALAH BACA. "
+        "Bedakan angka faktual dari interpretasi. Jelaskan bahwa sentimen posisi bukan order flow global dan data publik dapat tertunda sampai 60 menit. "
+        "Jangan memberi kepastian BUY/SELL, probabilitas palsu, atau menyimpulkan contrarian secara otomatis. "
+        "Jika mayoritas short, jelaskan short squeeze hanya sebagai kemungkinan jika harga mengonfirmasi dengan struktur/BOS dan liquidity sweep. "
+        "Sebutkan bahwa harga rata-rata entry komunitas bukan level support/resistance yang otomatis valid. Maksimal 180 kata. "
+        "Data JSON: " + json.dumps(metrics, ensure_ascii=False)
+    )
+    payload = {
+        "systemInstruction": {"parts": [{"text": "Kamu adalah analis sentiment XAUUSD yang konservatif. Ajarkan dengan bahasa sederhana, tanpa sinyal trading pasti dan tanpa mengarang data."}]},
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 500},
+    }
+    endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + settings.gemini_model + ":generateContent"
+    try:
+        async with httpx.AsyncClient(timeout=35, follow_redirects=True) as client:
+            response = await client.post(endpoint, headers={"x-goog-api-key": settings.gemini_api_key, "Content-Type": "application/json"}, json=payload)
+        if response.status_code == 429:
+            raise HTTPException(429, "Kuota Gemini habis atau sedang dibatasi. Coba lagi nanti.")
+        if response.status_code in {400, 401, 403, 404}:
+            raise HTTPException(502, "Gemini menolak permintaan. Periksa GEMINI_API_KEY dan model di server.")
+        response.raise_for_status()
+        result = response.json()
+    except HTTPException:
+        raise
+    except httpx.HTTPError:
+        raise HTTPException(502, "Layanan Gemini sementara tidak tersedia.") from None
+    candidates = result.get("candidates", [])
+    parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
+    analysis = "\n".join(part.get("text", "") for part in parts if isinstance(part, dict) and isinstance(part.get("text"), str)).strip()
+    if not analysis:
+        raise HTTPException(502, "Gemini tidak mengembalikan ringkasan.")
+    return {"analysis": analysis, "model": settings.gemini_model, "source": "Myfxbook Community Outlook", "symbol": "XAUUSD"}
 
 @app.get("/news-liquidity", response_class=HTMLResponse)
 def news_liquidity_page(request: Request):
