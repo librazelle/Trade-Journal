@@ -88,4 +88,21 @@
     }
   });
 
+  // Myfxbook exposes a current public snapshot, not historical interval data.
+  // This selector controls refresh cadence only; provider data may lag by 60 minutes.
+  const mfInterval = $("nl-mf-interval");
+  let mfRefreshTimer = null;
+  const scheduleMyfxbookRefresh = () => {
+    if (mfRefreshTimer) clearInterval(mfRefreshTimer);
+    const intervalMs = Number(mfInterval.value);
+    if (Number.isFinite(intervalMs) && intervalMs >= 300000) {
+      mfRefreshTimer = setInterval(() => {
+        const button = $("nl-mf-load");
+        if (button && !button.disabled) button.click();
+      }, intervalMs);
+    }
+  };
+  mfInterval.addEventListener("change", scheduleMyfxbookRefresh);
+  scheduleMyfxbookRefresh();
+
 })();
