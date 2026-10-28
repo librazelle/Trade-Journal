@@ -165,3 +165,12 @@ def test_market_monitor_returns_502_when_upstream_has_no_candles(client, monkeyp
 
     assert response.status_code == 502
     assert "Data market sementara tidak tersedia" in response.json()["detail"]
+
+
+def test_news_liquidity_page_renders(client):
+    response = client.get("/news-liquidity")
+    assert response.status_code == 200
+    assert "News Liquidity Lab" in response.text
+    assert "Waktu rilis (WIB)" in response.text
+    assert "Liquidity sweep check" in response.text
+    assert "bukan bukti resting orders" in response.text
