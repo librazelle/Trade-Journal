@@ -57,39 +57,64 @@ app.include_router(event_lab_router)
 
 @app.get("/api/news-liquidity/coinglass")
 async def coinglass_news_liquidity(symbol: str = "BTC", interval: str = "5m", start_time: int | None = None, end_time: int | None = None):
-    """Fetch crypto liquidation and aggregated open-interest history around an event."""
-    if not settings.coinglass_api_key:
-        return {"configured": False, "source": "CoinGlass API v4", "message": "Set COINGLASS_API_KEY in deployment environment variables.", "liquidations": [], "open_interest": []}
+    """Use Binance public futures endpoints; no API key required. Historical liquidations are not publicly available here."""
     symbol = symbol.strip().upper()
-    if symbol not in {"BTC", "ETH", "SOL", "BNB", "XRP"}:
+    symbols = {"BTC": "BTCUSDT", "ETH": "ETHUSDT", "SOL": "SOLUSDT", "BNB": "BNBUSDT", "XRP": "XRPUSDT"}
+    if symbol not in symbols:
         raise HTTPException(400, "Unsupported crypto symbol.")
-    if interval not in {"1m", "3m", "5m", "15m", "30m", "1h", "4h", "6h", "8h", "12h", "1d", "1w"}:
-        raise HTTPException(400, "Unsupported CoinGlass interval.")
+    if interval not in {"5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d"}:
+        raise HTTPException(400, "Unsupported public futures interval.")
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
     end_ms = end_time or now_ms
     start_ms = start_time or end_ms - 24 * 60 * 60 * 1000
     if start_ms >= end_ms:
         raise HTTPException(400, "start_time must be earlier than end_time.")
-    if end_ms - start_ms > 30 * 24 * 60 * 60 * 1000:
-        raise HTTPException(400, "CoinGlass window is limited to 30 days.")
-    headers = {"accept": "application/json", "CG-" + "API-KEY": settings.coinglass_api_key, "User-Agent": "trade-lens/0.1"}
-    params = {"symbol": symbol, "interval": interval, "limit": 1000, "start_time": start_ms, "end_time": end_ms}
-    async def fetch_data(client, path, query):
-        response = await client.get("https://open-api-v4.coinglass.com" + path, params=query)
-        response.raise_for_status()
-        payload = response.json()
-        if str(payload.get("code", "0")) != "0":
-            raise ValueError("CoinGlass API returned an error")
-        return payload.get("data") or []
+    if end_ms - start_ms > 7 * 24 * 60 * 60 * 1000:
+        raise HTTPException(400, "Public open-interest history is limited to a 7-day window.")
+    pair = symbols[symbol]
+    params = {"symbol": pair, "period": interval, "limit": 500, "startTime": start_ms, "endTime": end_ms}
     try:
-        async with httpx.AsyncClient(timeout=12.0, headers=headers) as client:
-            liquidations, open_interest = await asyncio.gather(
-                fetch_data(client, "/api/futures/liquidation/aggregated-history", {**params, "exchange_list": "Binance,OKX,Bybit"}),
-                fetch_data(client, "/api/futures/open-interest/aggregated-history", params),
-            )
+        async with httpx.AsyncClient(timeout=12.0, headers={"accept": "application/json", "User-Agent": "trade-lens/0.1"}) as client:
+            oi_response = await client.get("https://fapi.binance.com/futures/data/openInterestHist", params=params)
+            oi_response.raise_for_status()
+            oi_payload = oi_response.json()
+            ticker_response = await client.get("https://fapi.binance.com/fapi/v1/ticker/24hr", params={"symbol": pair})
+            ticker_response.raise_for_status()
+            ticker = ticker_response.json()
+            funding_response = await client.get("https://fapi.binance.com/fapi/v1/fundingRate", params={"symbol": pair, "limit": 1})
+            funding_response.raise_for_status()
+            funding_payload = funding_response.json()
     except (httpx.HTTPError, ValueError, TypeError) as exc:
-        raise HTTPException(502, "CoinGlass data unavailable. Check API key, plan/interval limits, and supported symbol.") from exc
-    return {"configured": True, "source": "CoinGlass API v4", "symbol": symbol, "interval": interval, "start_time": start_ms, "end_time": end_ms, "exchange_list": ["Binance", "OKX", "Bybit"], "liquidations": liquidations, "open_interest": open_interest, "message": "Crypto derivatives data only; not XAUUSD or Nasdaq futures liquidity."}
+        raise HTTPException(502, "Binance public futures data unavailable. Check network/API availability and try again.") from exc
+    oi_rows = []
+    for row in oi_payload if isinstance(oi_payload, list) else []:
+        try:
+            value = float(row.get("sumOpenInterestValue", 0))
+            timestamp = int(row.get("timestamp", 0))
+            oi_rows.append({"time": timestamp, "open": value, "close": value, "open_interest_value": value, "open_interest_contracts": float(row.get("sumOpenInterest", 0))})
+        except (ValueError, TypeError):
+            continue
+    funding = None
+    if isinstance(funding_payload, list) and funding_payload:
+        try:
+            funding = float(funding_payload[-1].get("fundingRate"))
+        except (ValueError, TypeError):
+            funding = None
+    try:
+        price_change_pct = float(ticker.get("priceChangePercent"))
+        last_price = float(ticker.get("lastPrice"))
+        quote_volume = float(ticker.get("quoteVolume"))
+    except (ValueError, TypeError):
+        price_change_pct = last_price = quote_volume = None
+    return {
+        "configured": True, "source": "Binance public USDⓈ-M Futures API", "symbol": symbol,
+        "pair": pair, "interval": interval, "start_time": start_ms, "end_time": end_ms,
+        "liquidations": [], "liquidations_available": False, "open_interest": oi_rows,
+        "funding_rate": funding, "price_change_percent_24h": price_change_pct,
+        "last_price": last_price, "quote_volume_24h": quote_volume,
+        "exchange_list": ["Binance"],
+        "message": "Data publik tanpa API key. Binance public API menyediakan open-interest history dan funding/market snapshot, tetapi bukan riwayat agregat liquidation. Data ini hanya crypto, bukan proxy likuiditas XAUUSD atau Nasdaq."
+    }
 
 class _MyfxbookTextParser(HTMLParser):
     def __init__(self):
