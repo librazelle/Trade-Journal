@@ -139,7 +139,7 @@ async def myfxbook_outlook(symbol: str = "XAUUSD"):
             )
             directional_by_side = {side.lower(): value for value, side in directional}
             percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", text_blob)
-            average_prices = re.findall(r"average price(?: of)?\s*([\d,.]+)", text_blob, re.I)
+            average_prices = re.findall(r"average price(?: of)?\s*([\d,]*\d(?:\.\d+)?)", text_blob, re.I)
             table = re.search(
                 r"XAUUSD\s+short\s+(\d+(?:\.\d+)?)\s*%\s+([\d,.]+)\s*lots\s+([\d,]+)\s+Long\s+(\d+(?:\.\d+)?)\s*%\s+([\d,.]+)\s*lots\s+([\d,]+)",
                 text_blob, re.I
