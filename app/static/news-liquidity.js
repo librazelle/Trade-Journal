@@ -55,22 +55,12 @@
       const eventMs=new Date($("nl-event-time").value).getTime();
       if(!Number.isFinite(eventMs)) throw new Error("Waktu rilis tidak valid.");
       const eventSec=Math.floor(eventMs/1000), windowSec=Number($("nl-window").value)*60;
-      let data;
-      if(importedCandles){
-        data={candles:importedCandles,source:"CSV impor lokal",ticker:instrument};
-      }else{
-        const res=await fetch('/api/market-monitor/'+encodeURIComponent(instrument)+'?interval='+encodeURIComponent(interval),{cache:"no-store"});
-        data=await res.json();
-        if(!res.ok){
-          const detail=data.detail||"Data market tidak tersedia.";
-          if(res.status===502&&detail.includes("429")) throw new Error("Yahoo Finance sedang membatasi request (HTTP 429). Impor CSV OHLC dari TradingView/broker di atas untuk tetap menganalisis event.");
-          throw new Error(detail);
-        }
-      }
+      if(!importedCandles) throw new Error("Impor CSV OHLC dari TradingView atau broker terlebih dahulu. Trade-Lens tidak lagi mengambil candle dari Yahoo Finance.");
+      const data={candles:importedCandles,source:"CSV impor lokal",ticker:instrument};
       const candles=(data.candles||[]).filter(c=>c.time>=eventSec-windowSec && c.time<=eventSec+windowSec);
       const pre=candles.filter(c=>c.time<eventSec), post=candles.filter(c=>c.time>=eventSec);
       const allStart=data.candles?.[0]?.time, allEnd=data.candles?.[data.candles.length-1]?.time;
-      if(!candles.length) throw new Error("Tidak ada candle di sekitar waktu rilis ini. Endpoint saat ini hanya menyediakan rentang terbaru; pilih event yang waktunya masuk ke rentang candle yang tersedia.");
+      if(!candles.length) throw new Error("Tidak ada candle di sekitar waktu rilis ini. Pastikan waktu event berada di rentang timestamp CSV.");
       $("nl-pre-range").textContent=fmt(range(pre)); $("nl-post-range").textContent=fmt(range(post));
       $("nl-pre-count").textContent=pre.length+" candle sebelum"; $("nl-post-count").textContent=post.length+" candle sesudah";
       const preHigh=pre.length?Math.max(...pre.map(c=>c.high)):NaN, preLow=pre.length?Math.min(...pre.map(c=>c.low)):NaN;
