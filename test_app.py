@@ -186,3 +186,5 @@ def test_news_liquidity_page_renders(client):
     assert "Waktu rilis (WIB)" in response.text
     assert "Liquidity sweep check" in response.text
     assert "bukan bukti resting orders" in response.text
+    assert "nl-csv-file" in response.text
+    assert "import CSV" in response.text or "import candle CSV" in response.text
