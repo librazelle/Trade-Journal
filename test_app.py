@@ -128,43 +128,9 @@ def _market_chart_payload():
     }
 
 
-def test_market_monitor_returns_valid_candles(client, monkeypatch):
-    from app import main
-
-    _FakeMarketClient.payload = _market_chart_payload()
-    monkeypatch.setattr(main.httpx, "AsyncClient", _FakeMarketClient)
+def test_market_monitor_endpoint_is_removed(client):
     response = client.get("/api/market-monitor/NASDAQ100?interval=5m")
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["ticker"] == "^NDX"
-    assert data["status"] == "DELAY_UNKNOWN"
-    assert len(data["candles"]) == 2
-    assert data["candles"][-1]["close"] == 102.0
-    assert data["last_candle_at"]
-    assert data["fetched_at"]
-    assert _FakeMarketClient.requested_params["interval"] == "5m"
-
-
-def test_market_monitor_rejects_unknown_instrument(client):
-    response = client.get("/api/market-monitor/UNKNOWN")
     assert response.status_code == 404
-
-
-def test_market_monitor_rejects_unsupported_interval(client):
-    response = client.get("/api/market-monitor/NASDAQ100?interval=2m")
-    assert response.status_code == 400
-
-
-def test_market_monitor_returns_502_when_upstream_has_no_candles(client, monkeypatch):
-    from app import main
-
-    _FakeMarketClient.payload = {"chart": {"result": None, "error": None}}
-    monkeypatch.setattr(main.httpx, "AsyncClient", _FakeMarketClient)
-    response = client.get("/api/market-monitor/SP500?interval=15m")
-
-    assert response.status_code == 502
-    assert "Data market sementara tidak tersedia" in response.json()["detail"]
 
 
 def test_coinglass_endpoint_explains_missing_api_key(client, monkeypatch):
