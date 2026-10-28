@@ -165,6 +165,42 @@ async def market_monitor(instrument: str, interval: str = "1m"):
     raise HTTPException(502, f"Data market sementara tidak tersedia ({item['ticker']}): {detail}. Cache valid belum tersedia; coba lagi nanti.")
     
 
+@app.get("/api/news-liquidity/coinglass")
+async def coinglass_news_liquidity(symbol: str = "BTC", interval: str = "5m", start_time: int | None = None, end_time: int | None = None):
+    """Fetch crypto liquidation and aggregated open-interest history around an event."""
+    if not settings.coinglass_api_key:
+        return {"configured": False, "source": "CoinGlass API v4", "message": "Set COINGLASS_API_KEY in deployment environment variables.", "liquidations": [], "open_interest": []}
+    symbol = symbol.strip().upper()
+    if symbol not in {"BTC", "ETH", "SOL", "BNB", "XRP"}:
+        raise HTTPException(400, "Unsupported crypto symbol.")
+    if interval not in {"1m", "3m", "5m", "15m", "30m", "1h", "4h", "6h", "8h", "12h", "1d", "1w"}:
+        raise HTTPException(400, "Unsupported CoinGlass interval.")
+    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    end_ms = end_time or now_ms
+    start_ms = start_time or end_ms - 24 * 60 * 60 * 1000
+    if start_ms >= end_ms:
+        raise HTTPException(400, "start_time must be earlier than end_time.")
+    if end_ms - start_ms > 30 * 24 * 60 * 60 * 1000:
+        raise HTTPException(400, "CoinGlass window is limited to 30 days.")
+    headers = {"accept": "application/json", "CG-" + "API-KEY": settings.coinglass_api_key, "User-Agent": "trade-lens/0.1"}
+    params = {"symbol": symbol, "interval": interval, "limit": 1000, "start_time": start_ms, "end_time": end_ms}
+    async def fetch_data(client, path, query):
+        response = await client.get("https://open-api-v4.coinglass.com" + path, params=query)
+        response.raise_for_status()
+        payload = response.json()
+        if str(payload.get("code", "0")) != "0":
+            raise ValueError("CoinGlass API returned an error")
+        return payload.get("data") or []
+    try:
+        async with httpx.AsyncClient(timeout=12.0, headers=headers) as client:
+            liquidations, open_interest = await asyncio.gather(
+                fetch_data(client, "/api/futures/liquidation/aggregated-history", {**params, "exchange_list": "Binance,OKX,Bybit"}),
+                fetch_data(client, "/api/futures/open-interest/aggregated-history", params),
+            )
+    except (httpx.HTTPError, ValueError, TypeError) as exc:
+        raise HTTPException(502, "CoinGlass data unavailable. Check API key, plan/interval limits, and supported symbol.") from exc
+    return {"configured": True, "source": "CoinGlass API v4", "symbol": symbol, "interval": interval, "start_time": start_ms, "end_time": end_ms, "exchange_list": ["Binance", "OKX", "Bybit"], "liquidations": liquidations, "open_interest": open_interest, "message": "Crypto derivatives data only; not XAUUSD or Nasdaq futures liquidity."}
+
 @app.get("/news-liquidity", response_class=HTMLResponse)
 def news_liquidity_page(request: Request):
     """News Liquidity Lab: compare recent market candles around an economic release."""
